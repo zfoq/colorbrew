@@ -13,6 +13,7 @@ A lightweight, zero-dependency Python library for working with colors.
 - Immutable `Color` class with format properties and dunder methods
 - CSS/HTML-ready output (`rgb()`, `rgba()`, `hsl()`, `hsla()`, hex)
 - Format string support (`f"{color:rgb}"`, `f"{color:hsl}"`)
+- Reverse name lookup — find the closest CSS named color with distance score
 
 ## Installation
 
@@ -55,6 +56,12 @@ c.css_hsla(0.8)             # "hsla(204, 70%, 53%, 0.8)"
 f"{c:rgb}"                  # "rgb(52, 152, 219)"
 f"{c:hsl}"                  # "hsl(204, 70%, 53%)"
 f"{c:hex}"                  # "#3498db"
+
+# Reverse name lookup
+match = c.closest_name
+match.name                  # "steelblue"
+match.distance              # 10.7703
+match.exact                 # False
 
 # Iteration and comparison
 r, g, b = c                 # unpack RGB
