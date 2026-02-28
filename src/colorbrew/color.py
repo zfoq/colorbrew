@@ -11,6 +11,7 @@ from collections.abc import Iterator
 from typing import overload
 
 from colorbrew import blending as _blending
+from colorbrew import contrast as _contrast
 from colorbrew import converters as _conv
 from colorbrew import css_output as _css
 from colorbrew import manipulation as _manip
@@ -360,6 +361,48 @@ class Color:
             List of 3 Color instances.
         """
         return [Color(*rgb) for rgb in _palettes.tetradic(*self._rgb)]
+
+    # --- Methods: accessibility ---
+
+    @property
+    def luminance(self) -> float:
+        """WCAG relative luminance (0.0 for black, 1.0 for white)."""
+        return _contrast.relative_luminance(*self._rgb)
+
+    def contrast(self, other: Color) -> float:
+        """Calculate WCAG contrast ratio against another color.
+
+        Args:
+            other: The color to compare against.
+
+        Returns:
+            Contrast ratio between 1.0 and 21.0.
+        """
+        return _contrast.contrast_ratio(self._rgb, other._rgb)
+
+    def meets_aa(self, other: Color, large: bool = False) -> bool:
+        """Check if this color meets WCAG AA contrast with another.
+
+        Args:
+            other: The color to compare against.
+            large: True for large text (threshold 3.0 instead of 4.5).
+
+        Returns:
+            True if the pair meets AA requirements.
+        """
+        return _contrast.meets_aa(self._rgb, other._rgb, large)
+
+    def meets_aaa(self, other: Color, large: bool = False) -> bool:
+        """Check if this color meets WCAG AAA contrast with another.
+
+        Args:
+            other: The color to compare against.
+            large: True for large text (threshold 4.5 instead of 7.0).
+
+        Returns:
+            True if the pair meets AAA requirements.
+        """
+        return _contrast.meets_aaa(self._rgb, other._rgb, large)
 
     # --- Dunder / magic methods ---
 

@@ -17,6 +17,7 @@ A lightweight, zero-dependency Python library for working with colors.
 - Color manipulation — lighten, darken, saturate, desaturate, rotate hue, invert, grayscale, mix
 - Photoshop-style blend modes — multiply, screen, overlay, soft light, hard light, difference
 - Palette generation — complementary, analogous, triadic, split-complementary, tetradic
+- WCAG accessibility — luminance, contrast ratio, AA/AAA compliance checks
 
 ## Installation
 
@@ -86,6 +87,12 @@ c.analogous()                  # 3 neighboring hues
 c.triadic()                    # 2 colors at 120° intervals
 c.split_complementary()        # 2 colors flanking the complement
 c.tetradic()                   # 3 colors at 90° intervals
+
+# Accessibility (WCAG 2.1)
+c.luminance                    # relative luminance (0.0-1.0)
+c.contrast(Color("white"))     # contrast ratio (1.0-21.0)
+c.meets_aa(Color("white"))     # True if passes WCAG AA
+c.meets_aaa(Color("white"))    # True if passes WCAG AAA
 
 # Iteration and comparison
 r, g, b = c                 # unpack RGB
