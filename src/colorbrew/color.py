@@ -300,6 +300,54 @@ class Color:
         """
         return Color(*_manip.mix(self._rgb, other._rgb, weight))
 
+    def shade(self, amount: float = 0.5) -> Color:
+        """Return a darker shade by mixing with black.
+
+        Args:
+            amount: Weight toward black (0.0 = original, 1.0 = black).
+
+        Returns:
+            A new darker Color.
+        """
+        return Color(*_manip.shade(*self._rgb, amount))
+
+    def tint(self, amount: float = 0.5) -> Color:
+        """Return a lighter tint by mixing with white.
+
+        Args:
+            amount: Weight toward white (0.0 = original, 1.0 = white).
+
+        Returns:
+            A new lighter Color.
+        """
+        return Color(*_manip.tint(*self._rgb, amount))
+
+    def tone(self, amount: float = 0.5) -> Color:
+        """Return a muted tone by mixing with gray.
+
+        Args:
+            amount: Weight toward gray (0.0 = original, 1.0 = gray).
+
+        Returns:
+            A new muted Color.
+        """
+        return Color(*_manip.tone(*self._rgb, amount))
+
+    def gradient(self, other: Color, steps: int = 5) -> list[Color]:
+        """Generate a gradient of colors to another color.
+
+        Args:
+            other: The end color.
+            steps: Number of colors to generate (minimum 2).
+
+        Returns:
+            List of Color instances from this color to ``other``.
+        """
+        return [
+            Color(*rgb)
+            for rgb in _manip.gradient(self._rgb, other._rgb, steps)
+        ]
+
     # --- Methods: blending ---
 
     def blend(self, other: Color, mode: str = "multiply") -> Color:
@@ -369,6 +417,16 @@ class Color:
     def luminance(self) -> float:
         """WCAG relative luminance (0.0 for black, 1.0 for white)."""
         return _contrast.relative_luminance(*self._rgb)
+
+    @property
+    def is_light(self) -> bool:
+        """True if the color is perceptually light (luminance > 0.5)."""
+        return _contrast.is_light(*self._rgb)
+
+    @property
+    def is_dark(self) -> bool:
+        """True if the color is perceptually dark (luminance <= 0.5)."""
+        return _contrast.is_dark(*self._rgb)
 
     def contrast(self, other: Color) -> float:
         """Calculate WCAG contrast ratio against another color.

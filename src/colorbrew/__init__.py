@@ -1,9 +1,9 @@
 """ColorBrew — a lightweight, zero-dependency Python library for colors.
 
 Provides color parsing, format conversion, CSS/HTML output, reverse name
-lookup, color manipulation, blend modes, palette generation, WCAG
-accessibility checking, and color temperature analysis through a single
-``Color`` class.
+lookup, color manipulation (shade, tint, tone, gradient), blend modes,
+palette generation, WCAG accessibility checking (including is_light/is_dark),
+and color temperature analysis through a single ``Color`` class.
 """
 
 from __future__ import annotations
