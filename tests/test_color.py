@@ -245,6 +245,131 @@ class TestColorDunder:
             f"{Color('#ff0000'):invalid}"
 
 
+class TestColorCssOutput:
+    """Test CSS output methods on Color."""
+
+    def test_css_hex(self):
+        """Return hex string via css_hex property."""
+        assert Color(52, 152, 219).css_hex == "#3498db"
+
+    def test_css_rgb(self):
+        """Return CSS rgb() string."""
+        assert Color(52, 152, 219).css_rgb == "rgb(52, 152, 219)"
+
+    def test_css_hsl(self):
+        """Return CSS hsl() string."""
+        assert Color(255, 0, 0).css_hsl == "hsl(0, 100%, 50%)"
+
+    def test_css_rgba(self):
+        """Return CSS rgba() string."""
+        assert Color(52, 152, 219).css_rgba(0.8) == "rgba(52, 152, 219, 0.8)"
+
+    def test_css_hsla(self):
+        """Return CSS hsla() string."""
+        result = Color(255, 0, 0).css_hsla(0.5)
+        assert result == "hsla(0, 100%, 50%, 0.5)"
+
+
+class TestColorClosestName:
+    """Test closest_name property on Color."""
+
+    def test_returns_namedtuple(self):
+        """Return a NameMatch with name and distance."""
+        match = Color("#1e90ff").closest_name
+        assert match.name == "dodgerblue"
+        assert isinstance(match.distance, float)
+
+
+class TestColorAccessibility:
+    """Test accessibility methods on Color."""
+
+    def test_luminance_black(self):
+        """Black has luminance 0."""
+        assert Color(0, 0, 0).luminance == 0.0
+
+    def test_luminance_white(self):
+        """White has luminance 1."""
+        assert Color(255, 255, 255).luminance == 1.0
+
+    def test_contrast_black_white(self):
+        """Black vs white has max contrast ratio 21."""
+        assert Color(0, 0, 0).contrast(Color(255, 255, 255)) == 21.0
+
+    def test_meets_aa(self):
+        """Black/white passes AA."""
+        assert Color(0, 0, 0).meets_aa(Color(255, 255, 255)) is True
+
+    def test_meets_aaa(self):
+        """Black/white passes AAA."""
+        assert Color(0, 0, 0).meets_aaa(Color(255, 255, 255)) is True
+
+
+class TestColorTemperature:
+    """Test temperature methods on Color."""
+
+    def test_temperature_warm(self):
+        """Red is warm."""
+        assert Color(255, 0, 0).temperature == "warm"
+
+    def test_temperature_cool(self):
+        """Blue is cool."""
+        assert Color(0, 0, 255).temperature == "cool"
+
+    def test_kelvin_returns_int(self):
+        """Kelvin is an integer."""
+        assert isinstance(Color(255, 0, 0).kelvin, int)
+
+
+class TestColorBlend:
+    """Test blend method on Color."""
+
+    def test_multiply(self):
+        """Multiply white by a color returns that color."""
+        result = Color(255, 255, 255).blend(Color(52, 152, 219), "multiply")
+        assert result == Color(52, 152, 219)
+
+    def test_returns_color(self):
+        """Blend returns a Color instance."""
+        result = Color(100, 100, 100).blend(Color(200, 200, 200))
+        assert isinstance(result, Color)
+
+
+class TestColorMix:
+    """Test mix method on Color."""
+
+    def test_equal_mix(self):
+        """Mix black and white equally gives gray."""
+        result = Color(0, 0, 0).mix(Color(255, 255, 255), 0.5)
+        assert result == Color(128, 128, 128)
+
+
+class TestColorPalettes:
+    """Test palette methods on Color."""
+
+    def test_complementary(self):
+        """Complementary returns a single Color."""
+        result = Color(255, 0, 0).complementary()
+        assert isinstance(result, Color)
+
+    def test_analogous_count(self):
+        """Analogous returns the requested number of colors."""
+        result = Color(255, 0, 0).analogous(5)
+        assert len(result) == 5
+        assert all(isinstance(c, Color) for c in result)
+
+    def test_triadic_count(self):
+        """Triadic returns 2 colors."""
+        assert len(Color(255, 0, 0).triadic()) == 2
+
+    def test_split_complementary_count(self):
+        """Split complementary returns 2 colors."""
+        assert len(Color(255, 0, 0).split_complementary()) == 2
+
+    def test_tetradic_count(self):
+        """Tetradic returns 3 colors."""
+        assert len(Color(255, 0, 0).tetradic()) == 3
+
+
 class TestColorImmutability:
     """Test that Color operations never modify the original."""
 

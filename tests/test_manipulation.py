@@ -50,6 +50,15 @@ class TestDarken:
         assert result == (0, 0, 0)
 
 
+class TestDarkenEdgeCases:
+    """Test edge cases for darken function."""
+
+    def test_clamps_at_0(self):
+        """Darkening past 0% clamps to black."""
+        result = darken(10, 10, 10, 100)
+        assert rgb_to_hsl(*result)[2] == 0
+
+
 class TestSaturate:
     """Test saturate function."""
 
@@ -88,6 +97,16 @@ class TestRotateHue:
         result = rotate_hue(52, 152, 219, 360)
         for orig, rotated in zip((52, 152, 219), result):
             assert abs(orig - rotated) <= 1
+
+
+class TestRotateHueEdgeCases:
+    """Test edge cases for rotate_hue."""
+
+    def test_negative_rotation(self):
+        """Negative degrees wrap correctly."""
+        result = rotate_hue(255, 0, 0, -30)
+        h, _, _ = rgb_to_hsl(*result)
+        assert abs(h - 330) <= 1
 
 
 class TestInvert:

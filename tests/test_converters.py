@@ -121,6 +121,18 @@ class TestHslToRgb:
         assert r == g == b == 128
 
 
+class TestHslToRgbEdgeCases:
+    """Test edge cases for hsl_to_rgb."""
+
+    def test_hue_360(self):
+        """Hue 360 produces the same result as hue 0 (red)."""
+        assert hsl_to_rgb(360, 100, 50) == (255, 0, 0)
+
+    def test_hue_360_equals_hue_0(self):
+        """Hue 360 and hue 0 are equivalent."""
+        assert hsl_to_rgb(360, 100, 50) == hsl_to_rgb(0, 100, 50)
+
+
 class TestRgbToHslRoundTrip:
     """Test that rgb -> hsl -> rgb is stable for key values."""
 

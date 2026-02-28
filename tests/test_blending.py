@@ -47,6 +47,16 @@ class TestBlendOverlay:
         result = blend((100, 150, 200), (50, 100, 150), mode="overlay")
         assert all(0 <= v <= 255 for v in result)
 
+    def test_white_base_gives_white(self):
+        """Overlay with white base always produces white."""
+        result = blend((255, 255, 255), (52, 152, 219), mode="overlay")
+        assert result == (255, 255, 255)
+
+    def test_black_base_gives_black(self):
+        """Overlay with black base always produces black."""
+        result = blend((0, 0, 0), (52, 152, 219), mode="overlay")
+        assert result == (0, 0, 0)
+
 
 class TestBlendSoftLight:
     """Test soft_light blend mode."""
@@ -56,6 +66,13 @@ class TestBlendSoftLight:
         result = blend((100, 150, 200), (50, 100, 150), mode="soft_light")
         assert all(0 <= v <= 255 for v in result)
 
+    def test_neutral_gray_top(self):
+        """Soft light with 50% gray top returns approximately the base."""
+        base = (100, 150, 200)
+        result = blend(base, (128, 128, 128), mode="soft_light")
+        for orig, blended in zip(base, result):
+            assert abs(orig - blended) <= 2
+
 
 class TestBlendHardLight:
     """Test hard_light blend mode."""
@@ -64,6 +81,11 @@ class TestBlendHardLight:
         """Hard light returns values in 0-255 range."""
         result = blend((100, 150, 200), (50, 100, 150), mode="hard_light")
         assert all(0 <= v <= 255 for v in result)
+
+    def test_is_swapped_overlay(self):
+        """Hard light is overlay with layers swapped."""
+        base, top = (100, 150, 200), (50, 100, 150)
+        assert blend(base, top, "hard_light") == blend(top, base, "overlay")
 
 
 class TestBlendDifference:
