@@ -1,12 +1,12 @@
 [project]
 name = "colorbrew"
-version = "0.5.3"
+version = "0.6.0"
 description = "A lightweight, zero-dependency Python library for color manipulation."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
 authors = [{ name = "Dawid Prus" }]
-keywords = ["color", "hex", "rgb", "hsl", "css", "palette", "accessibility", "wcag"]
+keywords = ["color", "hex", "rgb", "hsl", "hsv", "css", "palette", "accessibility", "wcag", "colorblind"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
