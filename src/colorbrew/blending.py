@@ -7,6 +7,8 @@ to match the W3C compositing specification.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 
 def _norm(v: int) -> float:
     """Normalize an 0-255 integer to 0.0-1.0."""
@@ -21,15 +23,13 @@ def _denorm(v: float) -> int:
 def _apply(
     base: tuple[int, int, int],
     top: tuple[int, int, int],
-    fn: object,
+    fn: Callable[[float, float], float],
 ) -> tuple[int, int, int]:
     """Apply a per-channel blend function and return an RGB tuple."""
-    # fn is typed loosely to keep the module simple; it's always a callable
-    _fn = fn  # type: ignore[assignment]
     return (
-        _denorm(_fn(_norm(base[0]), _norm(top[0]))),
-        _denorm(_fn(_norm(base[1]), _norm(top[1]))),
-        _denorm(_fn(_norm(base[2]), _norm(top[2]))),
+        _denorm(fn(_norm(base[0]), _norm(top[0]))),
+        _denorm(fn(_norm(base[1]), _norm(top[1]))),
+        _denorm(fn(_norm(base[2]), _norm(top[2]))),
     )
 
 
@@ -67,7 +67,7 @@ def _difference_ch(a: float, b: float) -> float:
     return abs(a - b)
 
 
-_MODES: dict[str, object] = {
+_MODES: dict[str, Callable[[float, float], float]] = {
     "multiply": _multiply,
     "screen": _screen,
     "overlay": _overlay_ch,
