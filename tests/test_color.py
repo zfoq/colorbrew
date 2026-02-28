@@ -248,12 +248,20 @@ class TestColorDunder:
 class TestColorImmutability:
     """Test that Color operations never modify the original."""
 
-    def test_from_hsl_immutable(self):
-        """From HSL returns a new Color, not affecting other instances."""
-        c1 = Color("#3498db")
-        c2 = Color.from_hsl(0, 100, 50)
-        assert c1.rgb == (52, 152, 219)
-        assert c2.rgb == (255, 0, 0)
+    def test_lighten_immutable(self):
+        """Lighten returns a new Color, original unchanged."""
+        c = Color("#3498db")
+        original_rgb = c.rgb
+        lighter = c.lighten(20)
+        assert c.rgb == original_rgb
+        assert lighter != c
+
+    def test_darken_immutable(self):
+        """Darken returns a new Color, original unchanged."""
+        c = Color("#3498db")
+        original_rgb = c.rgb
+        c.darken(20)
+        assert c.rgb == original_rgb
 
     def test_slots_prevent_attr(self):
         """__slots__ prevents setting arbitrary attributes."""
