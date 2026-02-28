@@ -6,9 +6,11 @@ from colorbrew.converters import (
     cmyk_to_rgb,
     hex_to_rgb,
     hsl_to_rgb,
+    hsv_to_rgb,
     rgb_to_cmyk,
     rgb_to_hex,
     rgb_to_hsl,
+    rgb_to_hsv,
 )
 
 
@@ -185,3 +187,84 @@ class TestCmykToRgb:
     def test_pure_red(self):
         """Convert CMYK pure red to RGB."""
         assert cmyk_to_rgb(0, 100, 100, 0) == (255, 0, 0)
+
+
+class TestRgbToHsv:
+    """Test rgb_to_hsv conversion."""
+
+    def test_black(self):
+        """Convert black to HSV."""
+        assert rgb_to_hsv(0, 0, 0) == (0, 0, 0)
+
+    def test_white(self):
+        """Convert white to HSV."""
+        assert rgb_to_hsv(255, 255, 255) == (0, 0, 100)
+
+    def test_pure_red(self):
+        """Convert pure red to HSV."""
+        assert rgb_to_hsv(255, 0, 0) == (0, 100, 100)
+
+    def test_pure_green(self):
+        """Convert pure green to HSV."""
+        assert rgb_to_hsv(0, 255, 0) == (120, 100, 100)
+
+    def test_pure_blue(self):
+        """Convert pure blue to HSV."""
+        assert rgb_to_hsv(0, 0, 255) == (240, 100, 100)
+
+    def test_mid_gray(self):
+        """Convert mid gray to HSV."""
+        h, s, v = rgb_to_hsv(128, 128, 128)
+        assert s == 0
+        assert v == 50
+
+
+class TestHsvToRgb:
+    """Test hsv_to_rgb conversion."""
+
+    def test_black(self):
+        """Convert HSV black to RGB."""
+        assert hsv_to_rgb(0, 0, 0) == (0, 0, 0)
+
+    def test_white(self):
+        """Convert HSV white to RGB."""
+        assert hsv_to_rgb(0, 0, 100) == (255, 255, 255)
+
+    def test_pure_red(self):
+        """Convert HSV pure red to RGB."""
+        assert hsv_to_rgb(0, 100, 100) == (255, 0, 0)
+
+    def test_pure_green(self):
+        """Convert HSV pure green to RGB."""
+        assert hsv_to_rgb(120, 100, 100) == (0, 255, 0)
+
+    def test_pure_blue(self):
+        """Convert HSV pure blue to RGB."""
+        assert hsv_to_rgb(240, 100, 100) == (0, 0, 255)
+
+    def test_gray(self):
+        """Convert achromatic HSV to gray."""
+        r, g, b = hsv_to_rgb(0, 0, 50)
+        assert r == g == b == 128
+
+
+class TestRgbToHsvRoundTrip:
+    """Test that rgb -> hsv -> rgb is stable for key values."""
+
+    @pytest.mark.parametrize(
+        "rgb",
+        [
+            (0, 0, 0),
+            (255, 255, 255),
+            (255, 0, 0),
+            (0, 255, 0),
+            (0, 0, 255),
+            (128, 128, 128),
+        ],
+    )
+    def test_round_trip(self, rgb):
+        """Verify round-trip conversion stability."""
+        h, s, v = rgb_to_hsv(*rgb)
+        result = hsv_to_rgb(h, s, v)
+        for orig, conv in zip(rgb, result):
+            assert abs(orig - conv) <= 1

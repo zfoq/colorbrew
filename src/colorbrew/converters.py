@@ -175,3 +175,89 @@ def cmyk_to_rgb(c: int, m: int, y: int, k: int) -> tuple[int, int, int]:
     b = round(255 * (1 - y_norm) * (1 - k_norm))
 
     return (r, g, b)
+
+
+def rgb_to_hsv(r: int, g: int, b: int) -> tuple[int, int, int]:
+    """Convert RGB integers to an HSV tuple.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+
+    Returns:
+        Tuple of (hue 0-360, saturation 0-100, value 0-100).
+    """
+    r_norm = r / 255.0
+    g_norm = g / 255.0
+    b_norm = b / 255.0
+
+    c_max = max(r_norm, g_norm, b_norm)
+    c_min = min(r_norm, g_norm, b_norm)
+    delta = c_max - c_min
+
+    # Value
+    value = c_max
+
+    if delta == 0.0:
+        hue = 0.0
+        saturation = 0.0
+    else:
+        # Saturation
+        saturation = delta / c_max
+
+        # Hue (same calculation as HSL)
+        if c_max == r_norm:
+            hue = ((g_norm - b_norm) / delta) % 6.0
+        elif c_max == g_norm:
+            hue = (b_norm - r_norm) / delta + 2.0
+        else:
+            hue = (r_norm - g_norm) / delta + 4.0
+
+        hue *= 60.0
+        if hue < 0:
+            hue += 360.0
+
+    return (round(hue), round(saturation * 100), round(value * 100))
+
+
+def hsv_to_rgb(h: int, s: int, v: int) -> tuple[int, int, int]:
+    """Convert HSV values to an RGB tuple.
+
+    Args:
+        h: Hue in degrees (0-360).
+        s: Saturation as percentage (0-100).
+        v: Value/brightness as percentage (0-100).
+
+    Returns:
+        Tuple of (red, green, blue) integers in range 0-255.
+    """
+    s_norm = s / 100.0
+    v_norm = v / 100.0
+
+    if s_norm == 0.0:
+        val = round(v_norm * 255)
+        return (val, val, val)
+
+    c = v_norm * s_norm
+    x = c * (1.0 - abs((h / 60.0) % 2.0 - 1.0))
+    m = v_norm - c
+
+    if h < 60:
+        r1, g1, b1 = c, x, 0.0
+    elif h < 120:
+        r1, g1, b1 = x, c, 0.0
+    elif h < 180:
+        r1, g1, b1 = 0.0, c, x
+    elif h < 240:
+        r1, g1, b1 = 0.0, x, c
+    elif h < 300:
+        r1, g1, b1 = x, 0.0, c
+    else:
+        r1, g1, b1 = c, 0.0, x
+
+    return (
+        round((r1 + m) * 255),
+        round((g1 + m) * 255),
+        round((b1 + m) * 255),
+    )
