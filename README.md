@@ -18,6 +18,7 @@ A lightweight, zero-dependency Python library for working with colors.
 - Photoshop-style blend modes — multiply, screen, overlay, soft light, hard light, difference
 - Palette generation — complementary, analogous, triadic, split-complementary, tetradic
 - WCAG accessibility — luminance, contrast ratio, AA/AAA compliance checks
+- Color temperature — warm/cool/neutral classification, Kelvin estimation
 
 ## Installation
 
@@ -93,6 +94,10 @@ c.luminance                    # relative luminance (0.0-1.0)
 c.contrast(Color("white"))     # contrast ratio (1.0-21.0)
 c.meets_aa(Color("white"))     # True if passes WCAG AA
 c.meets_aaa(Color("white"))    # True if passes WCAG AAA
+
+# Color temperature
+c.temperature                  # "warm", "cool", or "neutral"
+c.kelvin                       # estimated Kelvin (1000-40000)
 
 # Iteration and comparison
 r, g, b = c                 # unpack RGB

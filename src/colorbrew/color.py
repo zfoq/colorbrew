@@ -17,6 +17,7 @@ from colorbrew import css_output as _css
 from colorbrew import manipulation as _manip
 from colorbrew import naming as _naming
 from colorbrew import palettes as _palettes
+from colorbrew import temperature as _temp
 from colorbrew.exceptions import ColorParseError, ColorValueError
 from colorbrew.named_colors import NAMED_COLORS
 from colorbrew.parsing import parse_rgb_args, parse_string
@@ -403,6 +404,18 @@ class Color:
             True if the pair meets AAA requirements.
         """
         return _contrast.meets_aaa(self._rgb, other._rgb, large)
+
+    # --- Methods: temperature ---
+
+    @property
+    def temperature(self) -> str:
+        """Classify this color as ``"warm"``, ``"cool"``, or ``"neutral"``."""
+        return _temp.classify_temperature(*self._rgb)
+
+    @property
+    def kelvin(self) -> int:
+        """Estimated correlated color temperature in Kelvin (1000-40000)."""
+        return _temp.estimate_kelvin(*self._rgb)
 
     # --- Dunder / magic methods ---
 
