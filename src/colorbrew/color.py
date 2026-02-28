@@ -10,6 +10,7 @@ import random
 from collections.abc import Iterator
 from typing import overload
 
+from colorbrew import blending as _blending
 from colorbrew import converters as _conv
 from colorbrew import css_output as _css
 from colorbrew import manipulation as _manip
@@ -295,6 +296,23 @@ class Color:
             A new blended Color.
         """
         return Color(*_manip.mix(self._rgb, other._rgb, weight))
+
+    # --- Methods: blending ---
+
+    def blend(self, other: Color, mode: str = "multiply") -> Color:
+        """Apply a Photoshop-style blend mode with another color.
+
+        Args:
+            other: The top-layer color.
+            mode: Blend mode name (e.g. ``"multiply"``, ``"screen"``).
+
+        Returns:
+            A new blended Color.
+
+        Raises:
+            ValueError: If the mode name is not recognized.
+        """
+        return Color(*_blending.blend(self._rgb, other._rgb, mode))
 
     # --- Dunder / magic methods ---
 
