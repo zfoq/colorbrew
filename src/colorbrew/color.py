@@ -12,6 +12,7 @@ from typing import overload
 
 from colorbrew import converters as _conv
 from colorbrew import css_output as _css
+from colorbrew import manipulation as _manip
 from colorbrew import naming as _naming
 from colorbrew.exceptions import ColorParseError, ColorValueError
 from colorbrew.named_colors import NAMED_COLORS
@@ -217,6 +218,83 @@ class Color:
     def closest_name(self) -> NameMatch:
         """Find the closest CSS named color."""
         return _naming.find_closest_name(*self._rgb)
+
+    # --- Methods: manipulation ---
+
+    def lighten(self, amount: int = 10) -> Color:
+        """Return a lighter version of this color.
+
+        Args:
+            amount: Percentage points to add to lightness (0-100).
+
+        Returns:
+            A new Color with increased lightness.
+        """
+        return Color(*_manip.lighten(*self._rgb, amount))
+
+    def darken(self, amount: int = 10) -> Color:
+        """Return a darker version of this color.
+
+        Args:
+            amount: Percentage points to subtract from lightness (0-100).
+
+        Returns:
+            A new Color with decreased lightness.
+        """
+        return Color(*_manip.darken(*self._rgb, amount))
+
+    def saturate(self, amount: int = 10) -> Color:
+        """Return a more saturated version of this color.
+
+        Args:
+            amount: Percentage points to add to saturation (0-100).
+
+        Returns:
+            A new Color with increased saturation.
+        """
+        return Color(*_manip.saturate(*self._rgb, amount))
+
+    def desaturate(self, amount: int = 10) -> Color:
+        """Return a less saturated version of this color.
+
+        Args:
+            amount: Percentage points to subtract from saturation (0-100).
+
+        Returns:
+            A new Color with decreased saturation.
+        """
+        return Color(*_manip.desaturate(*self._rgb, amount))
+
+    def rotate(self, degrees: int) -> Color:
+        """Return a color with shifted hue.
+
+        Args:
+            degrees: Degrees to rotate (wraps at 360).
+
+        Returns:
+            A new Color with the adjusted hue.
+        """
+        return Color(*_manip.rotate_hue(*self._rgb, degrees))
+
+    def invert(self) -> Color:
+        """Return the inverted color (255 minus each channel)."""
+        return Color(*_manip.invert(*self._rgb))
+
+    def grayscale(self) -> Color:
+        """Return the grayscale version (saturation set to 0)."""
+        return Color(*_manip.grayscale(*self._rgb))
+
+    def mix(self, other: Color, weight: float = 0.5) -> Color:
+        """Blend this color with another using linear interpolation.
+
+        Args:
+            other: The color to mix with.
+            weight: Blend weight toward ``other`` (0.0-1.0).
+
+        Returns:
+            A new blended Color.
+        """
+        return Color(*_manip.mix(self._rgb, other._rgb, weight))
 
     # --- Dunder / magic methods ---
 
