@@ -1,6 +1,6 @@
 [project]
 name = "colorbrew"
-version = "0.5.0"
+version = "0.5.1"
 description = "A lightweight, zero-dependency Python library for color manipulation."
 readme = "README.md"
 license = "MIT"
@@ -21,6 +21,7 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/zfoq/colorbrew"
 Repository = "https://github.com/zfoq/colorbrew"
+Changelog = "https://github.com/zfoq/colorbrew/releases"
 
 [build-system]
 requires = ["hatchling"]
