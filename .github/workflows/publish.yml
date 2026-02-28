@@ -9,8 +9,24 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync
+      - run: uv run ruff check src/
+      - run: uv run pytest
+
   publish:
     runs-on: ubuntu-latest
+    needs: test
     environment: pypi
     steps:
       - uses: actions/checkout@v4
@@ -28,20 +44,16 @@ jobs:
         with:
           fetch-depth: 0
       - name: Generate release notes
-        id: notes
         run: |
-          # Find the previous tag
           CURRENT_TAG="${GITHUB_REF_NAME}"
           PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sed -n '2p')
 
           if [ -z "$PREVIOUS_TAG" ]; then
-            # First release — use all commits
             COMMITS=$(git log --pretty=format:"- %s" "$CURRENT_TAG")
           else
             COMMITS=$(git log --pretty=format:"- %s" "$PREVIOUS_TAG..$CURRENT_TAG")
           fi
 
-          # Write to file for the release body
           {
             echo "## What's Changed"
             echo ""
