@@ -133,3 +133,74 @@ def mix(
         round(rgb1[1] + (rgb2[1] - rgb1[1]) * w),
         round(rgb1[2] + (rgb2[2] - rgb1[2]) * w),
     )
+
+
+def shade(
+    r: int, g: int, b: int, amount: float = 0.5
+) -> tuple[int, int, int]:
+    """Mix a color with black to create a shade.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+        amount: Weight toward black (0.0 = original, 1.0 = black).
+
+    Returns:
+        New darker RGB tuple.
+    """
+    return mix((r, g, b), (0, 0, 0), amount)
+
+
+def tint(
+    r: int, g: int, b: int, amount: float = 0.5
+) -> tuple[int, int, int]:
+    """Mix a color with white to create a tint.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+        amount: Weight toward white (0.0 = original, 1.0 = white).
+
+    Returns:
+        New lighter RGB tuple.
+    """
+    return mix((r, g, b), (255, 255, 255), amount)
+
+
+def tone(
+    r: int, g: int, b: int, amount: float = 0.5
+) -> tuple[int, int, int]:
+    """Mix a color with gray to create a tone.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+        amount: Weight toward gray (0.0 = original, 1.0 = gray).
+
+    Returns:
+        New muted RGB tuple.
+    """
+    return mix((r, g, b), (128, 128, 128), amount)
+
+
+def gradient(
+    rgb1: tuple[int, int, int],
+    rgb2: tuple[int, int, int],
+    steps: int = 5,
+) -> list[tuple[int, int, int]]:
+    """Generate a list of colors between two endpoints.
+
+    Args:
+        rgb1: Start color as (r, g, b).
+        rgb2: End color as (r, g, b).
+        steps: Number of colors to generate (minimum 2).
+
+    Returns:
+        List of RGB tuples from ``rgb1`` to ``rgb2``.
+    """
+    if steps < 2:
+        return [rgb1]
+    return [mix(rgb1, rgb2, i / (steps - 1)) for i in range(steps)]

@@ -4,12 +4,16 @@ from colorbrew.converters import rgb_to_hsl
 from colorbrew.manipulation import (
     darken,
     desaturate,
+    gradient,
     grayscale,
     invert,
     lighten,
     mix,
     rotate_hue,
     saturate,
+    shade,
+    tint,
+    tone,
 )
 
 
@@ -162,3 +166,83 @@ class TestMix:
         """Mixing a color with itself returns the same color."""
         result = mix((52, 152, 219), (52, 152, 219), 0.5)
         assert result == (52, 152, 219)
+
+
+class TestShade:
+    """Test shade function (mix with black)."""
+
+    def test_zero_returns_original(self):
+        """Amount 0 returns the original color."""
+        assert shade(255, 0, 0, 0.0) == (255, 0, 0)
+
+    def test_one_returns_black(self):
+        """Amount 1 returns black."""
+        assert shade(255, 0, 0, 1.0) == (0, 0, 0)
+
+    def test_half_shade(self):
+        """Amount 0.5 returns halfway to black."""
+        assert shade(200, 100, 50, 0.5) == (100, 50, 25)
+
+
+class TestTint:
+    """Test tint function (mix with white)."""
+
+    def test_zero_returns_original(self):
+        """Amount 0 returns the original color."""
+        assert tint(255, 0, 0, 0.0) == (255, 0, 0)
+
+    def test_one_returns_white(self):
+        """Amount 1 returns white."""
+        assert tint(255, 0, 0, 1.0) == (255, 255, 255)
+
+    def test_half_tint(self):
+        """Amount 0.5 returns halfway to white."""
+        result = tint(0, 0, 0, 0.5)
+        assert result == (128, 128, 128)
+
+
+class TestTone:
+    """Test tone function (mix with gray)."""
+
+    def test_zero_returns_original(self):
+        """Amount 0 returns the original color."""
+        assert tone(255, 0, 0, 0.0) == (255, 0, 0)
+
+    def test_one_returns_gray(self):
+        """Amount 1 returns gray."""
+        assert tone(255, 0, 0, 1.0) == (128, 128, 128)
+
+    def test_half_tone(self):
+        """Amount 0.5 moves halfway to gray."""
+        result = tone(200, 100, 0, 0.5)
+        assert result == (164, 114, 64)
+
+
+class TestGradient:
+    """Test gradient function."""
+
+    def test_step_count(self):
+        """Gradient returns the requested number of steps."""
+        result = gradient((0, 0, 0), (255, 255, 255), 5)
+        assert len(result) == 5
+
+    def test_endpoints(self):
+        """First and last colors match the inputs."""
+        result = gradient((0, 0, 0), (255, 255, 255), 5)
+        assert result[0] == (0, 0, 0)
+        assert result[-1] == (255, 255, 255)
+
+    def test_midpoint(self):
+        """Midpoint of black to white is gray."""
+        result = gradient((0, 0, 0), (255, 255, 255), 3)
+        assert result[1] == (128, 128, 128)
+
+    def test_two_steps(self):
+        """Two steps returns just the endpoints."""
+        result = gradient((0, 0, 0), (255, 255, 255), 2)
+        assert result == [(0, 0, 0), (255, 255, 255)]
+
+    def test_single_step(self):
+        """Single step returns just the first color."""
+        result = gradient((0, 0, 0), (255, 255, 255), 1)
+        assert result == [(0, 0, 0)]
