@@ -94,6 +94,20 @@ class TestColorFromCmyk:
         assert c.rgb == (0, 0, 0)
 
 
+class TestColorFromHsv:
+    """Test Color.from_hsv class method."""
+
+    def test_red(self):
+        """Create red from HSV."""
+        c = Color.from_hsv(0, 100, 100)
+        assert c.rgb == (255, 0, 0)
+
+    def test_green(self):
+        """Create green from HSV."""
+        c = Color.from_hsv(120, 100, 100)
+        assert c.rgb == (0, 255, 0)
+
+
 class TestColorFromName:
     """Test Color.from_name class method."""
 
@@ -150,6 +164,11 @@ class TestColorProperties:
         """Get CMYK tuple."""
         c = Color(255, 0, 0)
         assert c.cmyk == (0, 100, 100, 0)
+
+    def test_hsv(self):
+        """Get HSV tuple."""
+        c = Color(255, 0, 0)
+        assert c.hsv == (0, 100, 100)
 
 
 class TestColorNamedString:
@@ -233,6 +252,11 @@ class TestColorDunder:
         """Format with 'hsl' spec."""
         c = Color(255, 0, 0)
         assert f"{c:hsl}" == "hsl(0, 100%, 50%)"
+
+    def test_format_hsv(self):
+        """Format with 'hsv' spec."""
+        c = Color(255, 0, 0)
+        assert f"{c:hsv}" == "hsv(0, 100%, 100%)"
 
     def test_format_default(self):
         """Default format returns hex."""
@@ -368,6 +392,89 @@ class TestColorPalettes:
     def test_tetradic_count(self):
         """Tetradic returns 3 colors."""
         assert len(Color(255, 0, 0).tetradic()) == 3
+
+
+class TestColorIsLightIsDark:
+    """Test is_light and is_dark properties on Color."""
+
+    def test_white_is_light(self):
+        """White is light."""
+        assert Color(255, 255, 255).is_light is True
+
+    def test_black_is_dark(self):
+        """Black is dark."""
+        assert Color(0, 0, 0).is_dark is True
+
+    def test_complementary_properties(self):
+        """is_light and is_dark are always opposite."""
+        c = Color(52, 152, 219)
+        assert c.is_light != c.is_dark
+
+
+class TestColorShadeTintTone:
+    """Test shade, tint, tone methods on Color."""
+
+    def test_shade_darkens(self):
+        """Shade makes a color darker."""
+        c = Color(255, 0, 0)
+        shaded = c.shade(1.0)
+        assert shaded == Color(0, 0, 0)
+
+    def test_tint_lightens(self):
+        """Tint makes a color lighter."""
+        c = Color(255, 0, 0)
+        tinted = c.tint(1.0)
+        assert tinted == Color(255, 255, 255)
+
+    def test_tone_mutes(self):
+        """Tone moves a color toward gray."""
+        c = Color(255, 0, 0)
+        toned = c.tone(1.0)
+        assert toned == Color(128, 128, 128)
+
+    def test_zero_amount_unchanged(self):
+        """Amount 0 returns the same color."""
+        c = Color(52, 152, 219)
+        assert c.shade(0.0) == c
+        assert c.tint(0.0) == c
+        assert c.tone(0.0) == c
+
+
+class TestColorGradient:
+    """Test gradient method on Color."""
+
+    def test_returns_list_of_colors(self):
+        """Gradient returns a list of Color instances."""
+        result = Color(0, 0, 0).gradient(Color(255, 255, 255), 5)
+        assert len(result) == 5
+        assert all(isinstance(c, Color) for c in result)
+
+    def test_endpoints_match(self):
+        """First and last match the input colors."""
+        start = Color(255, 0, 0)
+        end = Color(0, 0, 255)
+        result = start.gradient(end, 3)
+        assert result[0] == start
+        assert result[-1] == end
+
+
+class TestColorSimulateColorblind:
+    """Test color blindness simulation via Color method."""
+
+    def test_returns_color(self):
+        """Simulation returns a Color instance."""
+        result = Color(255, 0, 0).simulate_colorblind("protanopia")
+        assert isinstance(result, Color)
+
+    def test_protanopia_red_shifts(self):
+        """Red appears less red through protanopia."""
+        result = Color(255, 0, 0).simulate_colorblind("protanopia")
+        assert result.r < 130
+
+    def test_unknown_raises(self):
+        """Raise ValueError for unknown deficiency."""
+        with pytest.raises(ValueError):
+            Color(255, 0, 0).simulate_colorblind("invalid")
 
 
 class TestColorImmutability:

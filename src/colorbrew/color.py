@@ -11,6 +11,7 @@ from collections.abc import Iterator
 from typing import overload
 
 from colorbrew import blending as _blending
+from colorbrew import colorblind as _cb
 from colorbrew import contrast as _contrast
 from colorbrew import converters as _conv
 from colorbrew import css_output as _css
@@ -106,6 +107,21 @@ class Color:
         return cls(*rgb)
 
     @classmethod
+    def from_hsv(cls, h: int, s: int, v: int) -> Color:
+        """Create a Color from HSV values.
+
+        Args:
+            h: Hue in degrees (0-360).
+            s: Saturation as percentage (0-100).
+            v: Value/brightness as percentage (0-100).
+
+        Returns:
+            A new Color instance.
+        """
+        rgb = _conv.hsv_to_rgb(h, s, v)
+        return cls(*rgb)
+
+    @classmethod
     def from_name(cls, name: str) -> Color:
         """Create a Color from a CSS named color string.
 
@@ -174,6 +190,11 @@ class Color:
     def cmyk(self) -> tuple[int, int, int, int]:
         """CMYK tuple ``(c, m, y, k)`` with values 0-100."""
         return _conv.rgb_to_cmyk(*self._rgb)
+
+    @property
+    def hsv(self) -> tuple[int, int, int]:
+        """HSV tuple ``(hue 0-360, saturation 0-100, value 0-100)``."""
+        return _conv.rgb_to_hsv(*self._rgb)
 
     # --- Properties: CSS / HTML output ---
 
@@ -463,6 +484,24 @@ class Color:
         """
         return _contrast.meets_aaa(self._rgb, other._rgb, large)
 
+    # --- Methods: color blindness simulation ---
+
+    def simulate_colorblind(self, deficiency: str) -> Color:
+        """Simulate how this color appears with a color vision deficiency.
+
+        Args:
+            deficiency: One of ``"protanopia"`` (red-blind),
+                ``"deuteranopia"`` (green-blind), or
+                ``"tritanopia"`` (blue-blind).
+
+        Returns:
+            A new Color representing the simulated perception.
+
+        Raises:
+            ValueError: If the deficiency type is not recognized.
+        """
+        return Color(*_cb.simulate(*self._rgb, deficiency))
+
     # --- Methods: temperature ---
 
     @property
@@ -500,11 +539,11 @@ class Color:
         return iter(self._rgb)
 
     def __format__(self, format_spec: str) -> str:
-        """Support format specs: ``hex``, ``rgb``, ``hsl``.
+        """Support format specs: ``hex``, ``rgb``, ``hsl``, ``hsv``.
 
         Args:
-            format_spec: One of ``"hex"``, ``"rgb"``, ``"hsl"``, or ``""``
-                (defaults to hex).
+            format_spec: One of ``"hex"``, ``"rgb"``, ``"hsl"``, ``"hsv"``,
+                or ``""`` (defaults to hex).
 
         Returns:
             Formatted color string.
@@ -515,6 +554,10 @@ class Color:
             return self.css_rgb
         if format_spec == "hsl":
             return self.css_hsl
+        if format_spec == "hsv":
+            h, s, v = self.hsv
+            return f"hsv({h}, {s}%, {v}%)"
         raise ValueError(
-            f"Unknown format spec {format_spec!r}. Use 'hex', 'rgb', or 'hsl'."
+            f"Unknown format spec {format_spec!r}. "
+            "Use 'hex', 'rgb', 'hsl', or 'hsv'."
         )
