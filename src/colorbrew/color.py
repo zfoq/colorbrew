@@ -15,6 +15,7 @@ from colorbrew import converters as _conv
 from colorbrew import css_output as _css
 from colorbrew import manipulation as _manip
 from colorbrew import naming as _naming
+from colorbrew import palettes as _palettes
 from colorbrew.exceptions import ColorParseError, ColorValueError
 from colorbrew.named_colors import NAMED_COLORS
 from colorbrew.parsing import parse_rgb_args, parse_string
@@ -313,6 +314,52 @@ class Color:
             ValueError: If the mode name is not recognized.
         """
         return Color(*_blending.blend(self._rgb, other._rgb, mode))
+
+    # --- Methods: palette generation ---
+
+    def complementary(self) -> Color:
+        """Return the complementary color (hue + 180 degrees).
+
+        Returns:
+            A new Color with the opposite hue.
+        """
+        return Color(*_palettes.complementary(*self._rgb))
+
+    def analogous(self, n: int = 3, step: int = 30) -> list[Color]:
+        """Return analogous colors spread evenly around the hue.
+
+        Args:
+            n: Number of colors to generate.
+            step: Degrees between each color.
+
+        Returns:
+            List of n Color instances.
+        """
+        return [Color(*rgb) for rgb in _palettes.analogous(*self._rgb, n, step)]
+
+    def triadic(self) -> list[Color]:
+        """Return two triadic colors (hue + 120 and + 240 degrees).
+
+        Returns:
+            List of 2 Color instances.
+        """
+        return [Color(*rgb) for rgb in _palettes.triadic(*self._rgb)]
+
+    def split_complementary(self) -> list[Color]:
+        """Return two split-complementary colors (hue + 150 and + 210).
+
+        Returns:
+            List of 2 Color instances.
+        """
+        return [Color(*rgb) for rgb in _palettes.split_complementary(*self._rgb)]
+
+    def tetradic(self) -> list[Color]:
+        """Return three tetradic colors (hue + 90, + 180, + 270).
+
+        Returns:
+            List of 3 Color instances.
+        """
+        return [Color(*rgb) for rgb in _palettes.tetradic(*self._rgb)]
 
     # --- Dunder / magic methods ---
 

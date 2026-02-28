@@ -16,6 +16,7 @@ A lightweight, zero-dependency Python library for working with colors.
 - Reverse name lookup — find the closest CSS named color with distance score
 - Color manipulation — lighten, darken, saturate, desaturate, rotate hue, invert, grayscale, mix
 - Photoshop-style blend modes — multiply, screen, overlay, soft light, hard light, difference
+- Palette generation — complementary, analogous, triadic, split-complementary, tetradic
 
 ## Installation
 
@@ -78,6 +79,13 @@ c.mix(Color("red"), 0.5)    # blend two colors
 # Blend modes
 c.blend(Color("white"), "multiply")   # multiply blend
 c.blend(Color("black"), "screen")     # screen blend
+
+# Palette generation
+c.complementary()              # opposite hue
+c.analogous()                  # 3 neighboring hues
+c.triadic()                    # 2 colors at 120° intervals
+c.split_complementary()        # 2 colors flanking the complement
+c.tetradic()                   # 3 colors at 90° intervals
 
 # Iteration and comparison
 r, g, b = c                 # unpack RGB
