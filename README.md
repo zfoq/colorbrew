@@ -15,6 +15,7 @@ A lightweight, zero-dependency Python library for working with colors.
 - Format string support (`f"{color:rgb}"`, `f"{color:hsl}"`)
 - Reverse name lookup — find the closest CSS named color with distance score
 - Color manipulation — lighten, darken, saturate, desaturate, rotate hue, invert, grayscale, mix
+- Photoshop-style blend modes — multiply, screen, overlay, soft light, hard light, difference
 
 ## Installation
 
@@ -73,6 +74,10 @@ c.rotate(180)               # shift hue
 c.invert()                  # RGB inverse
 c.grayscale()               # remove saturation
 c.mix(Color("red"), 0.5)    # blend two colors
+
+# Blend modes
+c.blend(Color("white"), "multiply")   # multiply blend
+c.blend(Color("black"), "screen")     # screen blend
 
 # Iteration and comparison
 r, g, b = c                 # unpack RGB
