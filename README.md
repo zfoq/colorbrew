@@ -64,8 +64,8 @@ f"{c:hex}"                  # "#3498db"
 
 # Reverse name lookup
 match = c.closest_name
-match.name                  # "steelblue"
-match.distance              # 10.7703
+match.name                  # "dodgerblue"
+match.distance              # 42.9418
 match.exact                 # False
 
 # Manipulation (all return new Color instances)

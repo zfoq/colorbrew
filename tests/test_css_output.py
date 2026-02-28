@@ -1,7 +1,8 @@
 """Tests for colorbrew.css_output — CSS/HTML string formatting."""
 
+import pytest
+
 from colorbrew.css_output import (
-    to_css_hex,
     to_css_hsl,
     to_css_hsla,
     to_css_rgb,
@@ -40,6 +41,16 @@ class TestToCssRgba:
         """Format with alpha 0."""
         assert to_css_rgba(52, 152, 219, 0) == "rgba(52, 152, 219, 0)"
 
+    def test_invalid_alpha_above(self):
+        """Reject alpha above 1.0."""
+        with pytest.raises(ValueError, match="Alpha must be between"):
+            to_css_rgba(52, 152, 219, 1.5)
+
+    def test_invalid_alpha_below(self):
+        """Reject alpha below 0.0."""
+        with pytest.raises(ValueError, match="Alpha must be between"):
+            to_css_rgba(52, 152, 219, -0.1)
+
 
 class TestToCssHsl:
     """Test to_css_hsl formatting."""
@@ -61,14 +72,7 @@ class TestToCssHsla:
         result = to_css_hsla(255, 0, 0, 0.5)
         assert result == "hsla(0, 100%, 50%, 0.5)"
 
-
-class TestToCssHex:
-    """Test to_css_hex formatting."""
-
-    def test_standard(self):
-        """Format a standard color as hex."""
-        assert to_css_hex(52, 152, 219) == "#3498db"
-
-    def test_black(self):
-        """Format black as hex."""
-        assert to_css_hex(0, 0, 0) == "#000000"
+    def test_invalid_alpha(self):
+        """Reject alpha outside 0.0-1.0."""
+        with pytest.raises(ValueError, match="Alpha must be between"):
+            to_css_hsla(255, 0, 0, 5.0)

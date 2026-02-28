@@ -6,7 +6,7 @@ for direct use in stylesheets and HTML attributes.
 
 from __future__ import annotations
 
-from colorbrew.converters import rgb_to_hex, rgb_to_hsl
+from colorbrew.converters import rgb_to_hsl
 
 
 def to_css_rgb(r: int, g: int, b: int) -> str:
@@ -34,7 +34,11 @@ def to_css_rgba(r: int, g: int, b: int, a: float) -> str:
 
     Returns:
         String like ``"rgba(52, 152, 219, 0.8)"``.
+
+    Raises:
+        ValueError: If alpha is outside 0.0-1.0.
     """
+    _validate_alpha(a)
     return f"rgba({r}, {g}, {b}, {a})"
 
 
@@ -68,20 +72,16 @@ def to_css_hsla(r: int, g: int, b: int, a: float) -> str:
 
     Returns:
         String like ``"hsla(204, 70%, 53%, 0.8)"``.
+
+    Raises:
+        ValueError: If alpha is outside 0.0-1.0.
     """
+    _validate_alpha(a)
     h, s, lit = rgb_to_hsl(r, g, b)
     return f"hsla({h}, {s}%, {lit}%, {a})"
 
 
-def to_css_hex(r: int, g: int, b: int) -> str:
-    """Return a CSS hex color string.
-
-    Args:
-        r: Red channel (0-255).
-        g: Green channel (0-255).
-        b: Blue channel (0-255).
-
-    Returns:
-        String like ``"#3498db"``.
-    """
-    return rgb_to_hex(r, g, b)
+def _validate_alpha(a: float) -> None:
+    """Raise ``ValueError`` if alpha is outside 0.0-1.0."""
+    if not isinstance(a, (int, float)) or a < 0.0 or a > 1.0:
+        raise ValueError(f"Alpha must be between 0.0 and 1.0, got {a}")
