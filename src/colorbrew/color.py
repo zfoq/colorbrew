@@ -12,9 +12,11 @@ from typing import overload
 
 from colorbrew import converters as _conv
 from colorbrew import css_output as _css
+from colorbrew import naming as _naming
 from colorbrew.exceptions import ColorParseError, ColorValueError
 from colorbrew.named_colors import NAMED_COLORS
 from colorbrew.parsing import parse_rgb_args, parse_string
+from colorbrew.types import NameMatch
 
 
 class Color:
@@ -208,6 +210,13 @@ class Color:
             String like ``"hsla(204, 70%, 53%, 0.8)"``.
         """
         return _css.to_css_hsla(*self._rgb, alpha)
+
+    # --- Property: name lookup ---
+
+    @property
+    def closest_name(self) -> NameMatch:
+        """Find the closest CSS named color."""
+        return _naming.find_closest_name(*self._rgb)
 
     # --- Dunder / magic methods ---
 
