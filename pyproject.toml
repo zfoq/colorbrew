@@ -5,7 +5,7 @@ description = "A lightweight, zero-dependency Python library for color manipulat
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
-authors = [{ name = "zfoq" }]
+authors = [{ name = "Dawid Prus" }]
 keywords = ["color", "hex", "rgb", "hsl", "css", "palette", "accessibility", "wcag"]
 classifiers = [
     "Development Status :: 3 - Alpha",
