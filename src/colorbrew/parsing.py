@@ -53,6 +53,7 @@ def parse_string(value: str) -> tuple[int, int, int]:
     m = _HSL_FUNC_RE.match(value)
     if m:
         h, s, lit = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        _validate_hsl(h, s, lit)
         return hsl_to_rgb(h, s, lit)
 
     # Try named color
@@ -92,3 +93,13 @@ def _validate_rgb(r: int, g: int, b: int) -> None:
             raise ColorValueError(
                 f"{name} must be 0-255, got {val}"
             )
+
+
+def _validate_hsl(h: int, s: int, lit: int) -> None:
+    """Raise ``ColorValueError`` if HSL values are out of range."""
+    if h < 0 or h > 360:
+        raise ColorValueError(f"Hue must be 0-360, got {h}")
+    if s < 0 or s > 100:
+        raise ColorValueError(f"Saturation must be 0-100, got {s}")
+    if lit < 0 or lit > 100:
+        raise ColorValueError(f"Lightness must be 0-100, got {lit}")

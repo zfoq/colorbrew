@@ -61,6 +61,25 @@ class TestParseStringHslFunc:
         assert result == (255, 0, 0)
 
 
+class TestParseStringHslValidation:
+    """Test HSL value validation in hsl() parsing."""
+
+    def test_hue_out_of_range(self):
+        """Raise ColorValueError for hue above 360."""
+        with pytest.raises(ColorValueError, match="Hue must be 0-360"):
+            parse_string("hsl(999, 50%, 50%)")
+
+    def test_saturation_out_of_range(self):
+        """Raise ColorValueError for saturation above 100."""
+        with pytest.raises(ColorValueError, match="Saturation must be 0-100"):
+            parse_string("hsl(180, 200, 50)")
+
+    def test_lightness_out_of_range(self):
+        """Raise ColorValueError for lightness above 100."""
+        with pytest.raises(ColorValueError, match="Lightness must be 0-100"):
+            parse_string("hsl(180, 50, 150)")
+
+
 class TestParseStringNamedColor:
     """Test parsing CSS named color strings."""
 
