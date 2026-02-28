@@ -1,6 +1,6 @@
 [project]
 name = "colorbrew"
-version = "0.6.0"
+version = "0.6.1"
 description = "A lightweight, zero-dependency Python library for color manipulation."
 readme = "README.md"
 license = "MIT"

@@ -11,9 +11,11 @@ from __future__ import annotations
 
 from colorbrew.color import Color
 from colorbrew.converters import (
+    cmyk_to_rgb,
     hex_to_rgb,
     hsl_to_rgb,
     hsv_to_rgb,
+    rgb_to_cmyk,
     rgb_to_hex,
     rgb_to_hsl,
     rgb_to_hsv,
@@ -27,9 +29,11 @@ __all__ = [
     "ColorParseError",
     "ColorValueError",
     "NameMatch",
+    "cmyk_to_rgb",
     "hex_to_rgb",
     "hsl_to_rgb",
     "hsv_to_rgb",
+    "rgb_to_cmyk",
     "rgb_to_hex",
     "rgb_to_hsl",
     "rgb_to_hsv",
