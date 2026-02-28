@@ -33,6 +33,34 @@ def relative_luminance(r: int, g: int, b: int) -> float:
     )
 
 
+def is_light(r: int, g: int, b: int) -> bool:
+    """Check if a color is perceptually light.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+
+    Returns:
+        True if the WCAG relative luminance exceeds 0.5.
+    """
+    return relative_luminance(r, g, b) > 0.5
+
+
+def is_dark(r: int, g: int, b: int) -> bool:
+    """Check if a color is perceptually dark.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+
+    Returns:
+        True if the WCAG relative luminance is 0.5 or below.
+    """
+    return relative_luminance(r, g, b) <= 0.5
+
+
 def contrast_ratio(
     rgb1: tuple[int, int, int], rgb2: tuple[int, int, int]
 ) -> float:

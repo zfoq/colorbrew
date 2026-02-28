@@ -2,6 +2,8 @@
 
 from colorbrew.contrast import (
     contrast_ratio,
+    is_dark,
+    is_light,
     meets_aa,
     meets_aaa,
     relative_luminance,
@@ -23,6 +25,47 @@ class TestRelativeLuminance:
         """Mid-range color has luminance between 0 and 1."""
         lum = relative_luminance(128, 128, 128)
         assert 0.0 < lum < 1.0
+
+
+class TestIsLight:
+    """Test is_light function."""
+
+    def test_white_is_light(self):
+        """White is light."""
+        assert is_light(255, 255, 255) is True
+
+    def test_black_is_not_light(self):
+        """Black is not light."""
+        assert is_light(0, 0, 0) is False
+
+    def test_bright_yellow_is_light(self):
+        """Bright yellow is light."""
+        assert is_light(255, 255, 0) is True
+
+
+class TestIsDark:
+    """Test is_dark function."""
+
+    def test_black_is_dark(self):
+        """Black is dark."""
+        assert is_dark(0, 0, 0) is True
+
+    def test_white_is_not_dark(self):
+        """White is not dark."""
+        assert is_dark(255, 255, 255) is False
+
+    def test_dark_blue_is_dark(self):
+        """Dark blue is dark."""
+        assert is_dark(0, 0, 128) is True
+
+
+class TestIsLightIsDarkComplement:
+    """Test that is_light and is_dark are complementary."""
+
+    def test_mutually_exclusive(self):
+        """A color is either light or dark, never both."""
+        for color in [(0, 0, 0), (255, 255, 255), (128, 128, 128), (52, 152, 219)]:
+            assert is_light(*color) != is_dark(*color)
 
 
 class TestContrastRatio:
