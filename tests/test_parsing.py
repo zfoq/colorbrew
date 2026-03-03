@@ -3,7 +3,7 @@
 import pytest
 
 from colorbrew.exceptions import ColorParseError, ColorValueError
-from colorbrew.parsing import parse_rgb_args, parse_string
+from colorbrew.conversion.parsing import parse_rgb_args, parse_string
 
 
 class TestParseStringHex:

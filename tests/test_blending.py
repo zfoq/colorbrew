@@ -2,7 +2,7 @@
 
 import pytest
 
-from colorbrew.blending import blend
+from colorbrew.transform.blending import blend
 
 
 class TestBlendMultiply:

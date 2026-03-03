@@ -1,6 +1,6 @@
 """Tests for colorbrew.contrast — WCAG accessibility calculations."""
 
-from colorbrew.contrast import (
+from colorbrew.analysis.contrast import (
     contrast_ratio,
     is_dark,
     is_light,

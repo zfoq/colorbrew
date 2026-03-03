@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from colorbrew.converters import rgb_to_hsl
+from colorbrew.conversion.converters import rgb_to_hsl
 
 
 def classify_temperature(r: int, g: int, b: int) -> Literal["warm", "cool", "neutral"]:

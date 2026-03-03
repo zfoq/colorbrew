@@ -2,7 +2,7 @@
 
 import pytest
 
-from colorbrew.colorblind import simulate
+from colorbrew.analysis.colorblind import simulate
 
 
 class TestSimulateProtanopia:

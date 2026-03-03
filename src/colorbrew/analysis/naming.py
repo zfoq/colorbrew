@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import math
 
-from colorbrew.converters import hex_to_rgb
-from colorbrew.material_colors import MATERIAL_COLORS
-from colorbrew.named_colors import NAMED_COLORS
-from colorbrew.tailwind_colors import TAILWIND_COLORS
+from colorbrew.conversion.converters import hex_to_rgb
+from colorbrew.data.material_colors import MATERIAL_COLORS
+from colorbrew.data.named_colors import NAMED_COLORS
+from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 from colorbrew.types import NameMatch
 
 

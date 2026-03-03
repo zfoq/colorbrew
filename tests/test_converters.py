@@ -2,7 +2,7 @@
 
 import pytest
 
-from colorbrew.converters import (
+from colorbrew.conversion.converters import (
     cmyk_to_rgb,
     hex_to_rgb,
     hsl_to_rgb,

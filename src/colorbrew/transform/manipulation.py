@@ -6,7 +6,7 @@ apply the adjustment, and convert back to RGB.
 
 from __future__ import annotations
 
-from colorbrew.converters import hsl_to_rgb, rgb_to_hsl
+from colorbrew.conversion.converters import hsl_to_rgb, rgb_to_hsl
 
 
 def _clamp(value: float, lo: float, hi: float) -> float:

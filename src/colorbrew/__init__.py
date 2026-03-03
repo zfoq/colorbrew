@@ -11,7 +11,7 @@ single ``Color`` class.
 from __future__ import annotations
 
 from colorbrew.color import Color
-from colorbrew.converters import (
+from colorbrew.conversion.converters import (
     cmyk_to_rgb,
     hex_to_rgb,
     hsl_to_rgb,

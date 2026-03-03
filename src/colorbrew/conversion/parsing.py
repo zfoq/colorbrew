@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import re
 
-from colorbrew.converters import hex_to_rgb, hsl_to_rgb
+from colorbrew.conversion.converters import hex_to_rgb, hsl_to_rgb
+from colorbrew.data.named_colors import NAMED_COLORS
 from colorbrew.exceptions import ColorParseError, ColorValueError
-from colorbrew.named_colors import NAMED_COLORS
 
 _HEX_RE = re.compile(r"^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 _RGB_FUNC_RE = re.compile(

@@ -10,20 +10,20 @@ import random
 from collections.abc import Iterator
 from typing import overload
 
-from colorbrew import blending as _blending
-from colorbrew import colorblind as _cb
-from colorbrew import contrast as _contrast
-from colorbrew import converters as _conv
-from colorbrew import css_output as _css
-from colorbrew import manipulation as _manip
-from colorbrew import naming as _naming
-from colorbrew import palettes as _palettes
-from colorbrew import temperature as _temp
+from colorbrew.analysis import colorblind as _cb
+from colorbrew.analysis import contrast as _contrast
+from colorbrew.analysis import naming as _naming
+from colorbrew.analysis import temperature as _temp
+from colorbrew.conversion import converters as _conv
+from colorbrew.conversion import css_output as _css
+from colorbrew.conversion.parsing import parse_rgb_args, parse_string
+from colorbrew.data.material_colors import MATERIAL_COLORS
+from colorbrew.data.named_colors import NAMED_COLORS
+from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 from colorbrew.exceptions import ColorParseError, ColorValueError
-from colorbrew.material_colors import MATERIAL_COLORS
-from colorbrew.named_colors import NAMED_COLORS
-from colorbrew.parsing import parse_rgb_args, parse_string
-from colorbrew.tailwind_colors import TAILWIND_COLORS
+from colorbrew.transform import blending as _blending
+from colorbrew.transform import manipulation as _manip
+from colorbrew.transform import palettes as _palettes
 from colorbrew.types import NameMatch
 
 

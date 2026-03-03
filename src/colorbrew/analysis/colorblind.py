@@ -7,7 +7,7 @@ Viénot 1999 / Brettel 1997 matrix transformations.
 
 from __future__ import annotations
 
-from colorbrew.contrast import _linearize
+from colorbrew.analysis.contrast import _linearize
 
 # Pre-multiplied simulation matrices operating in linear RGB space.
 # Protanopia and deuteranopia: Viénot et al. 1999
