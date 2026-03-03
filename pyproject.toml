@@ -4,7 +4,7 @@ version = "0.6.1"
 description = "A lightweight, zero-dependency Python library for color manipulation."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 authors = [{ name = "Dawid Prus" }]
 keywords = ["color", "hex", "rgb", "hsl", "hsv", "css", "palette", "accessibility", "wcag", "colorblind"]
 classifiers = [
@@ -12,6 +12,8 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
