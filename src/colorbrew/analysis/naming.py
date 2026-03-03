@@ -1,13 +1,12 @@
 """Reverse name lookup: find the closest color name in any palette.
 
-Uses Euclidean distance in RGB space to find the best match among CSS named
-colors, Tailwind CSS colors, or Material Design colors.
+Supports multiple distance methods: Euclidean RGB (fast, default for
+backward compatibility), CIE76 (Lab Euclidean), and CIEDE2000 (perceptual).
 """
 
 from __future__ import annotations
 
-import math
-
+from colorbrew.analysis.delta_e import distance as color_distance
 from colorbrew.conversion.converters import hex_to_rgb
 from colorbrew.data.material_colors import MATERIAL_COLORS
 from colorbrew.data.named_colors import NAMED_COLORS
@@ -16,7 +15,8 @@ from colorbrew.types import NameMatch
 
 
 def _find_closest(
-    r: int, g: int, b: int, palette: dict[str, str]
+    r: int, g: int, b: int, palette: dict[str, str],
+    method: str = "euclidean",
 ) -> NameMatch:
     """Find the palette color closest to the given RGB value.
 
@@ -25,6 +25,8 @@ def _find_closest(
         g: Green channel (0-255).
         b: Blue channel (0-255).
         palette: Mapping of color names to hex strings.
+        method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+            or ``"ciede2000"``.
 
     Returns:
         A NameMatch with the closest color name, its hex value,
@@ -36,7 +38,7 @@ def _find_closest(
 
     for name, hex_val in palette.items():
         nr, ng, nb = hex_to_rgb(hex_val)
-        dist = math.sqrt((r - nr) ** 2 + (g - ng) ** 2 + (b - nb) ** 2)
+        dist = color_distance(r, g, b, nr, ng, nb, method=method)
         if dist < best_dist:
             best_dist = dist
             best_name = name
@@ -52,43 +54,55 @@ def _find_closest(
     )
 
 
-def find_closest_name(r: int, g: int, b: int) -> NameMatch:
+def find_closest_name(
+    r: int, g: int, b: int, method: str = "euclidean"
+) -> NameMatch:
     """Find the CSS named color closest to the given RGB value.
 
     Args:
         r: Red channel (0-255).
         g: Green channel (0-255).
         b: Blue channel (0-255).
+        method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+            or ``"ciede2000"``.
 
     Returns:
         A NameMatch with the closest CSS color name.
     """
-    return _find_closest(r, g, b, NAMED_COLORS)
+    return _find_closest(r, g, b, NAMED_COLORS, method)
 
 
-def find_closest_tailwind(r: int, g: int, b: int) -> NameMatch:
+def find_closest_tailwind(
+    r: int, g: int, b: int, method: str = "euclidean"
+) -> NameMatch:
     """Find the Tailwind CSS color closest to the given RGB value.
 
     Args:
         r: Red channel (0-255).
         g: Green channel (0-255).
         b: Blue channel (0-255).
+        method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+            or ``"ciede2000"``.
 
     Returns:
         A NameMatch with the closest Tailwind color name (e.g. ``"sky-500"``).
     """
-    return _find_closest(r, g, b, TAILWIND_COLORS)
+    return _find_closest(r, g, b, TAILWIND_COLORS, method)
 
 
-def find_closest_material(r: int, g: int, b: int) -> NameMatch:
+def find_closest_material(
+    r: int, g: int, b: int, method: str = "euclidean"
+) -> NameMatch:
     """Find the Material Design color closest to the given RGB value.
 
     Args:
         r: Red channel (0-255).
         g: Green channel (0-255).
         b: Blue channel (0-255).
+        method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+            or ``"ciede2000"``.
 
     Returns:
         A NameMatch with the closest Material color name (e.g. ``"blue-600"``).
     """
-    return _find_closest(r, g, b, MATERIAL_COLORS)
+    return _find_closest(r, g, b, MATERIAL_COLORS, method)
