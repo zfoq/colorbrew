@@ -1,7 +1,7 @@
-"""Reverse name lookup: find the closest CSS named color to an RGB value.
+"""Reverse name lookup: find the closest color name in any palette.
 
-Uses Euclidean distance in RGB space to find the best match among all
-148 CSS named colors.
+Uses Euclidean distance in RGB space to find the best match among CSS named
+colors, Tailwind CSS colors, or Material Design colors.
 """
 
 from __future__ import annotations
@@ -9,20 +9,22 @@ from __future__ import annotations
 import math
 
 from colorbrew.converters import hex_to_rgb
+from colorbrew.material_colors import MATERIAL_COLORS
 from colorbrew.named_colors import NAMED_COLORS
+from colorbrew.tailwind_colors import TAILWIND_COLORS
 from colorbrew.types import NameMatch
 
 
-def find_closest_name(r: int, g: int, b: int) -> NameMatch:
-    """Find the CSS named color closest to the given RGB value.
-
-    Iterates all CSS named colors and returns the one with the
-    smallest Euclidean distance in RGB space.
+def _find_closest(
+    r: int, g: int, b: int, palette: dict[str, str]
+) -> NameMatch:
+    """Find the palette color closest to the given RGB value.
 
     Args:
         r: Red channel (0-255).
         g: Green channel (0-255).
         b: Blue channel (0-255).
+        palette: Mapping of color names to hex strings.
 
     Returns:
         A NameMatch with the closest color name, its hex value,
@@ -32,7 +34,7 @@ def find_closest_name(r: int, g: int, b: int) -> NameMatch:
     best_hex = ""
     best_dist = float("inf")
 
-    for name, hex_val in NAMED_COLORS.items():
+    for name, hex_val in palette.items():
         nr, ng, nb = hex_to_rgb(hex_val)
         dist = math.sqrt((r - nr) ** 2 + (g - ng) ** 2 + (b - nb) ** 2)
         if dist < best_dist:
@@ -48,3 +50,45 @@ def find_closest_name(r: int, g: int, b: int) -> NameMatch:
         distance=round(best_dist, 4),
         exact=best_dist == 0.0,
     )
+
+
+def find_closest_name(r: int, g: int, b: int) -> NameMatch:
+    """Find the CSS named color closest to the given RGB value.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+
+    Returns:
+        A NameMatch with the closest CSS color name.
+    """
+    return _find_closest(r, g, b, NAMED_COLORS)
+
+
+def find_closest_tailwind(r: int, g: int, b: int) -> NameMatch:
+    """Find the Tailwind CSS color closest to the given RGB value.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+
+    Returns:
+        A NameMatch with the closest Tailwind color name (e.g. ``"sky-500"``).
+    """
+    return _find_closest(r, g, b, TAILWIND_COLORS)
+
+
+def find_closest_material(r: int, g: int, b: int) -> NameMatch:
+    """Find the Material Design color closest to the given RGB value.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+
+    Returns:
+        A NameMatch with the closest Material color name (e.g. ``"blue-600"``).
+    """
+    return _find_closest(r, g, b, MATERIAL_COLORS)
