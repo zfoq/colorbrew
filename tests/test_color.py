@@ -477,6 +477,81 @@ class TestColorSimulateColorblind:
             Color(255, 0, 0).simulate_colorblind("invalid")
 
 
+class TestColorFromTailwind:
+    """Test Color.from_tailwind constructor."""
+
+    def test_known_color(self):
+        """Create from a known Tailwind color."""
+        c = Color.from_tailwind("sky-500")
+        assert c.hex == "#0ea5e9"
+
+    def test_case_insensitive(self):
+        """Tailwind names are case-insensitive."""
+        c = Color.from_tailwind("Sky-500")
+        assert c.hex == "#0ea5e9"
+
+    def test_unknown_raises(self):
+        """Raise ColorParseError for unknown Tailwind name."""
+        with pytest.raises(ColorParseError):
+            Color.from_tailwind("nonexistent-500")
+
+
+class TestColorFromMaterial:
+    """Test Color.from_material constructor."""
+
+    def test_known_color(self):
+        """Create from a known Material color."""
+        c = Color.from_material("blue-500")
+        assert c.hex == "#2196f3"
+
+    def test_case_insensitive(self):
+        """Material names are case-insensitive."""
+        c = Color.from_material("Blue-500")
+        assert c.hex == "#2196f3"
+
+    def test_deep_purple(self):
+        """Multi-word family names work."""
+        c = Color.from_material("deep-purple-500")
+        assert c.hex == "#673ab7"
+
+    def test_unknown_raises(self):
+        """Raise ColorParseError for unknown Material name."""
+        with pytest.raises(ColorParseError):
+            Color.from_material("nonexistent-500")
+
+
+class TestColorClosestTailwind:
+    """Test Color.closest_tailwind property."""
+
+    def test_returns_namematch(self):
+        """Property returns a NameMatch."""
+        match = Color(0xEF, 0x44, 0x44).closest_tailwind
+        assert match.name == "red-500"
+        assert match.exact is True
+
+    def test_non_exact(self):
+        """Non-exact match has distance > 0."""
+        match = Color(100, 100, 100).closest_tailwind
+        assert match.distance > 0
+        assert match.exact is False
+
+
+class TestColorClosestMaterial:
+    """Test Color.closest_material property."""
+
+    def test_returns_namematch(self):
+        """Property returns a NameMatch."""
+        match = Color(0x21, 0x96, 0xF3).closest_material
+        assert match.name == "blue-500"
+        assert match.exact is True
+
+    def test_non_exact(self):
+        """Non-exact match has distance > 0."""
+        match = Color(100, 100, 100).closest_material
+        assert match.distance > 0
+        assert match.exact is False
+
+
 class TestColorImmutability:
     """Test that Color operations never modify the original."""
 

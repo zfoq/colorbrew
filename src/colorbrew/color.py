@@ -20,8 +20,10 @@ from colorbrew import naming as _naming
 from colorbrew import palettes as _palettes
 from colorbrew import temperature as _temp
 from colorbrew.exceptions import ColorParseError, ColorValueError
+from colorbrew.material_colors import MATERIAL_COLORS
 from colorbrew.named_colors import NAMED_COLORS
 from colorbrew.parsing import parse_rgb_args, parse_string
+from colorbrew.tailwind_colors import TAILWIND_COLORS
 from colorbrew.types import NameMatch
 
 
@@ -140,6 +142,42 @@ class Color:
         return cls(NAMED_COLORS[lower])
 
     @classmethod
+    def from_tailwind(cls, name: str) -> Color:
+        """Create a Color from a Tailwind CSS color name.
+
+        Args:
+            name: Tailwind color name (case-insensitive), e.g. ``"sky-500"``.
+
+        Returns:
+            A new Color instance.
+
+        Raises:
+            ColorParseError: If the name is not a recognized Tailwind color.
+        """
+        lower = name.lower().strip()
+        if lower not in TAILWIND_COLORS:
+            raise ColorParseError(f"Unknown Tailwind color: {name!r}")
+        return cls(TAILWIND_COLORS[lower])
+
+    @classmethod
+    def from_material(cls, name: str) -> Color:
+        """Create a Color from a Material Design color name.
+
+        Args:
+            name: Material color name (case-insensitive), e.g. ``"blue-600"``.
+
+        Returns:
+            A new Color instance.
+
+        Raises:
+            ColorParseError: If the name is not a recognized Material color.
+        """
+        lower = name.lower().strip()
+        if lower not in MATERIAL_COLORS:
+            raise ColorParseError(f"Unknown Material Design color: {name!r}")
+        return cls(MATERIAL_COLORS[lower])
+
+    @classmethod
     def random(cls) -> Color:
         """Create a random Color using ``random.randint``.
 
@@ -243,6 +281,16 @@ class Color:
     def closest_name(self) -> NameMatch:
         """Find the closest CSS named color."""
         return _naming.find_closest_name(*self._rgb)
+
+    @property
+    def closest_tailwind(self) -> NameMatch:
+        """Find the closest Tailwind CSS color."""
+        return _naming.find_closest_tailwind(*self._rgb)
+
+    @property
+    def closest_material(self) -> NameMatch:
+        """Find the closest Material Design color."""
+        return _naming.find_closest_material(*self._rgb)
 
     # --- Methods: manipulation ---
 
