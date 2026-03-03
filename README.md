@@ -3,7 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/colorbrew)](https://pypi.org/project/colorbrew/)
 [![Python versions](https://img.shields.io/pypi/pyversions/colorbrew)](https://pypi.org/project/colorbrew/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/zfoq/colorbrew/blob/main/LICENSE)
-[![Tests](https://github.com/zfoq/colorbrew/actions/workflows/tests.yml/badge.svg)](https://github.com/zfoq/colorbrew/actions)
+[![Tests](https://github.com/zfoq/colorbrew/actions/workflows/ci.yml/badge.svg)](https://github.com/zfoq/colorbrew/actions)
 [![PyPI downloads](https://img.shields.io/pypi/dm/colorbrew)](https://pypi.org/project/colorbrew/)
 
 A lightweight, zero-dependency Python library for color parsing, conversion, manipulation, and accessibility analysis.
