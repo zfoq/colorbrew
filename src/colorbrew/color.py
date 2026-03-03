@@ -12,6 +12,7 @@ from typing import overload
 
 from colorbrew.analysis import colorblind as _cb
 from colorbrew.analysis import contrast as _contrast
+from colorbrew.analysis import delta_e as _delta_e
 from colorbrew.analysis import naming as _naming
 from colorbrew.analysis import temperature as _temp
 from colorbrew.conversion import converters as _conv
@@ -234,6 +235,11 @@ class Color:
         """HSV tuple ``(hue 0-360, saturation 0-100, value 0-100)``."""
         return _conv.rgb_to_hsv(*self._rgb)
 
+    @property
+    def lab(self) -> tuple[float, float, float]:
+        """CIE L*a*b* tuple ``(L*, a*, b*)`` using D65 illuminant."""
+        return _delta_e.rgb_to_lab(*self._rgb)
+
     # --- Properties: CSS / HTML output ---
 
     @property
@@ -275,22 +281,58 @@ class Color:
         """
         return _css.to_css_hsla(*self._rgb, alpha)
 
-    # --- Property: name lookup ---
+    # --- Methods: name lookup ---
 
-    @property
-    def closest_name(self) -> NameMatch:
-        """Find the closest CSS named color."""
-        return _naming.find_closest_name(*self._rgb)
+    def closest_name(self, method: str = "euclidean") -> NameMatch:
+        """Find the closest CSS named color.
 
-    @property
-    def closest_tailwind(self) -> NameMatch:
-        """Find the closest Tailwind CSS color."""
-        return _naming.find_closest_tailwind(*self._rgb)
+        Args:
+            method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+                or ``"ciede2000"``.
 
-    @property
-    def closest_material(self) -> NameMatch:
-        """Find the closest Material Design color."""
-        return _naming.find_closest_material(*self._rgb)
+        Returns:
+            A NameMatch with the closest CSS color name.
+        """
+        return _naming.find_closest_name(*self._rgb, method)
+
+    def closest_tailwind(self, method: str = "euclidean") -> NameMatch:
+        """Find the closest Tailwind CSS color.
+
+        Args:
+            method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+                or ``"ciede2000"``.
+
+        Returns:
+            A NameMatch with the closest Tailwind color name.
+        """
+        return _naming.find_closest_tailwind(*self._rgb, method)
+
+    def closest_material(self, method: str = "euclidean") -> NameMatch:
+        """Find the closest Material Design color.
+
+        Args:
+            method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+                or ``"ciede2000"``.
+
+        Returns:
+            A NameMatch with the closest Material Design color name.
+        """
+        return _naming.find_closest_material(*self._rgb, method)
+
+    # --- Methods: color distance ---
+
+    def distance(self, other: Color, method: str = "ciede2000") -> float:
+        """Calculate the perceptual distance to another color.
+
+        Args:
+            other: The color to compare against.
+            method: Distance algorithm — ``"euclidean"`` (RGB space),
+                ``"cie76"`` (Lab Euclidean), or ``"ciede2000"`` (perceptual).
+
+        Returns:
+            Distance as a non-negative float.
+        """
+        return _delta_e.distance(*self._rgb, *other._rgb, method=method)
 
     # --- Methods: manipulation ---
 

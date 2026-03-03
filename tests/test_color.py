@@ -295,11 +295,11 @@ class TestColorCssOutput:
 
 
 class TestColorClosestName:
-    """Test closest_name property on Color."""
+    """Test closest_name method on Color."""
 
     def test_returns_namedtuple(self):
         """Return a NameMatch with name and distance."""
-        match = Color("#1e90ff").closest_name
+        match = Color("#1e90ff").closest_name()
         assert match.name == "dodgerblue"
         assert isinstance(match.distance, float)
 
@@ -521,33 +521,33 @@ class TestColorFromMaterial:
 
 
 class TestColorClosestTailwind:
-    """Test Color.closest_tailwind property."""
+    """Test Color.closest_tailwind method."""
 
     def test_returns_namematch(self):
-        """Property returns a NameMatch."""
-        match = Color(0xEF, 0x44, 0x44).closest_tailwind
+        """Method returns a NameMatch."""
+        match = Color(0xEF, 0x44, 0x44).closest_tailwind()
         assert match.name == "red-500"
         assert match.exact is True
 
     def test_non_exact(self):
         """Non-exact match has distance > 0."""
-        match = Color(100, 100, 100).closest_tailwind
+        match = Color(100, 100, 100).closest_tailwind()
         assert match.distance > 0
         assert match.exact is False
 
 
 class TestColorClosestMaterial:
-    """Test Color.closest_material property."""
+    """Test Color.closest_material method."""
 
     def test_returns_namematch(self):
-        """Property returns a NameMatch."""
-        match = Color(0x21, 0x96, 0xF3).closest_material
+        """Method returns a NameMatch."""
+        match = Color(0x21, 0x96, 0xF3).closest_material()
         assert match.name == "blue-500"
         assert match.exact is True
 
     def test_non_exact(self):
         """Non-exact match has distance > 0."""
-        match = Color(100, 100, 100).closest_material
+        match = Color(100, 100, 100).closest_material()
         assert match.distance > 0
         assert match.exact is False
 
