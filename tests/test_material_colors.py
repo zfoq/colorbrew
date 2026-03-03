@@ -2,7 +2,7 @@
 
 import re
 
-from colorbrew.material_colors import MATERIAL_COLORS
+from colorbrew.data.material_colors import MATERIAL_COLORS
 
 _HEX_RE = re.compile(r"^#[0-9a-f]{6}$")
 

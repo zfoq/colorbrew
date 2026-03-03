@@ -2,7 +2,7 @@
 
 import re
 
-from colorbrew.tailwind_colors import TAILWIND_COLORS
+from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 
 _HEX_RE = re.compile(r"^#[0-9a-f]{6}$")
 

@@ -2,7 +2,7 @@
 
 import pytest
 
-from colorbrew.css_output import (
+from colorbrew.conversion.css_output import (
     to_css_hsl,
     to_css_hsla,
     to_css_rgb,

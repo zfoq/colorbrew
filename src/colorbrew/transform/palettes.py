@@ -6,7 +6,7 @@ representing the generated palette colors (not including the original).
 
 from __future__ import annotations
 
-from colorbrew.converters import hsl_to_rgb, rgb_to_hsl
+from colorbrew.conversion.converters import hsl_to_rgb, rgb_to_hsl
 
 
 def complementary(r: int, g: int, b: int) -> tuple[int, int, int]:

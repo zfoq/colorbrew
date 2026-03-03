@@ -1,6 +1,6 @@
 """Tests for colorbrew.naming — reverse color name lookup across palettes."""
 
-from colorbrew.naming import (
+from colorbrew.analysis.naming import (
     find_closest_material,
     find_closest_name,
     find_closest_tailwind,

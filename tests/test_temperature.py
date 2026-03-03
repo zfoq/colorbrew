@@ -1,6 +1,6 @@
 """Tests for colorbrew.temperature — color temperature classification."""
 
-from colorbrew.temperature import classify_temperature, estimate_kelvin
+from colorbrew.analysis.temperature import classify_temperature, estimate_kelvin
 
 
 class TestClassifyTemperature:

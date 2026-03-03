@@ -6,7 +6,7 @@ for direct use in stylesheets and HTML attributes.
 
 from __future__ import annotations
 
-from colorbrew.converters import rgb_to_hsl
+from colorbrew.conversion.converters import rgb_to_hsl
 
 
 def to_css_rgb(r: int, g: int, b: int) -> str:

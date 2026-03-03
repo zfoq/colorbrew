@@ -1,7 +1,7 @@
 """Tests for colorbrew.manipulation — color adjustment functions."""
 
-from colorbrew.converters import rgb_to_hsl
-from colorbrew.manipulation import (
+from colorbrew.conversion.converters import rgb_to_hsl
+from colorbrew.transform.manipulation import (
     darken,
     desaturate,
     gradient,

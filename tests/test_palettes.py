@@ -1,7 +1,7 @@
 """Tests for colorbrew.palettes — palette generation algorithms."""
 
-from colorbrew.converters import rgb_to_hsl
-from colorbrew.palettes import (
+from colorbrew.conversion.converters import rgb_to_hsl
+from colorbrew.transform.palettes import (
     analogous,
     complementary,
     split_complementary,
