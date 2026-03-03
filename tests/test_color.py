@@ -552,6 +552,89 @@ class TestColorClosestMaterial:
         assert match.exact is False
 
 
+class TestColorLab:
+    """Test Color.lab property."""
+
+    def test_returns_three_floats(self):
+        """Lab property returns a tuple of three floats."""
+        result = Color("#3498db").lab
+        assert len(result) == 3
+        assert all(isinstance(v, float) for v in result)
+
+    def test_black(self):
+        """Black has L*=0."""
+        ls, _a, _b = Color(0, 0, 0).lab
+        assert ls == pytest.approx(0.0, abs=0.01)
+
+    def test_white(self):
+        """White has L*=100."""
+        ls, _a, _b = Color(255, 255, 255).lab
+        assert ls == pytest.approx(100.0, abs=0.1)
+
+    def test_l_range(self):
+        """L* is between 0 and 100 for any color."""
+        ls, _, _ = Color(52, 152, 219).lab
+        assert 0 <= ls <= 100
+
+
+class TestColorDistance:
+    """Test Color.distance method."""
+
+    def test_identical_zero(self):
+        """Same color has zero distance."""
+        c = Color("#3498db")
+        assert c.distance(c) == 0.0
+
+    def test_ciede2000_default(self):
+        """Default method is ciede2000."""
+        c1 = Color(255, 0, 0)
+        c2 = Color(0, 255, 0)
+        d = c1.distance(c2)
+        assert d > 0
+
+    def test_euclidean_method(self):
+        """Euclidean method works."""
+        c1 = Color(255, 0, 0)
+        c2 = Color(0, 0, 0)
+        d = c1.distance(c2, method="euclidean")
+        assert d == pytest.approx(255.0)
+
+    def test_cie76_method(self):
+        """CIE76 method works."""
+        c1 = Color(0, 0, 0)
+        c2 = Color(255, 255, 255)
+        d = c1.distance(c2, method="cie76")
+        assert d == pytest.approx(100.0, abs=1.0)
+
+    def test_symmetric(self):
+        """Distance is symmetric."""
+        c1 = Color(52, 152, 219)
+        c2 = Color(231, 76, 60)
+        assert c1.distance(c2) == pytest.approx(c2.distance(c1))
+
+
+class TestColorClosestWithMethod:
+    """Test closest_* methods with different distance methods."""
+
+    def test_closest_name_ciede2000(self):
+        """closest_name with ciede2000 method returns a result."""
+        match = Color(255, 0, 0).closest_name(method="ciede2000")
+        assert isinstance(match.name, str)
+        assert match.exact is True
+
+    def test_closest_tailwind_cie76(self):
+        """closest_tailwind with cie76 method returns a result."""
+        match = Color(0xEF, 0x44, 0x44).closest_tailwind(method="cie76")
+        assert match.name == "red-500"
+        assert match.exact is True
+
+    def test_closest_material_euclidean(self):
+        """closest_material with euclidean method returns a result."""
+        match = Color(0x21, 0x96, 0xF3).closest_material(method="euclidean")
+        assert match.name == "blue-500"
+        assert match.exact is True
+
+
 class TestColorImmutability:
     """Test that Color operations never modify the original."""
 
