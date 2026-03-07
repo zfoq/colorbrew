@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Literal
 
 from colorbrew.conversion.converters import rgb_to_hsl
+from colorbrew.conversion.gamma import SRGB_TO_XYZ, linearize
 
 
 def classify_temperature(r: int, g: int, b: int) -> Literal["warm", "cool", "neutral"]:
@@ -51,20 +52,15 @@ def estimate_kelvin(r: int, g: int, b: int) -> int:
     Returns:
         Estimated color temperature in Kelvin (typically 1000-40000).
     """
-    # Normalize to 0-1
-    rn = r / 255.0
-    gn = g / 255.0
-    bn = b / 255.0
+    # sRGB -> linear RGB
+    rn = linearize(r)
+    gn = linearize(g)
+    bn = linearize(b)
 
-    # Linearize sRGB
-    rn = _linearize(rn)
-    gn = _linearize(gn)
-    bn = _linearize(bn)
-
-    # sRGB to CIE XYZ (D65 illuminant)
-    x = 0.4124564 * rn + 0.3575761 * gn + 0.1804375 * bn
-    y = 0.2126729 * rn + 0.7151522 * gn + 0.0721750 * bn
-    z = 0.0193339 * rn + 0.1191920 * gn + 0.9503041 * bn
+    # Linear RGB -> CIE XYZ (D65 illuminant)
+    x = SRGB_TO_XYZ[0][0] * rn + SRGB_TO_XYZ[0][1] * gn + SRGB_TO_XYZ[0][2] * bn
+    y = SRGB_TO_XYZ[1][0] * rn + SRGB_TO_XYZ[1][1] * gn + SRGB_TO_XYZ[1][2] * bn
+    z = SRGB_TO_XYZ[2][0] * rn + SRGB_TO_XYZ[2][1] * gn + SRGB_TO_XYZ[2][2] * bn
 
     # CIE xy chromaticity
     total = x + y + z
@@ -82,8 +78,3 @@ def estimate_kelvin(r: int, g: int, b: int) -> int:
     return max(1000, min(40000, round(cct)))
 
 
-def _linearize(v: float) -> float:
-    """Convert an sRGB gamma-encoded value to linear light."""
-    if v <= 0.04045:
-        return v / 12.92
-    return ((v + 0.055) / 1.055) ** 2.4

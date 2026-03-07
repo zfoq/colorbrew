@@ -7,6 +7,24 @@ They accept and return primitive types (int, float, str, tuple).
 from __future__ import annotations
 
 
+def _calc_hue(
+    r_norm: float, g_norm: float, b_norm: float,
+    c_max: float, delta: float,
+) -> float:
+    """Calculate hue angle from normalized RGB, shared by HSL and HSV."""
+    if c_max == r_norm:
+        hue = ((g_norm - b_norm) / delta) % 6.0
+    elif c_max == g_norm:
+        hue = (b_norm - r_norm) / delta + 2.0
+    else:
+        hue = (r_norm - g_norm) / delta + 4.0
+
+    hue *= 60.0
+    if hue < 0:
+        hue += 360.0
+    return hue
+
+
 def hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
     """Convert a hex color string to an RGB tuple.
 
@@ -64,23 +82,11 @@ def rgb_to_hsl(r: int, g: int, b: int) -> tuple[int, int, int]:
         hue = 0.0
         saturation = 0.0
     else:
-        # Saturation
         if lightness <= 0.5:
             saturation = delta / (c_max + c_min)
         else:
             saturation = delta / (2.0 - c_max - c_min)
-
-        # Hue
-        if c_max == r_norm:
-            hue = ((g_norm - b_norm) / delta) % 6.0
-        elif c_max == g_norm:
-            hue = (b_norm - r_norm) / delta + 2.0
-        else:
-            hue = (r_norm - g_norm) / delta + 4.0
-
-        hue *= 60.0
-        if hue < 0:
-            hue += 360.0
+        hue = _calc_hue(r_norm, g_norm, b_norm, c_max, delta)
 
     return (round(hue), round(saturation * 100), round(lightness * 100))
 
@@ -203,20 +209,8 @@ def rgb_to_hsv(r: int, g: int, b: int) -> tuple[int, int, int]:
         hue = 0.0
         saturation = 0.0
     else:
-        # Saturation
         saturation = delta / c_max
-
-        # Hue (same calculation as HSL)
-        if c_max == r_norm:
-            hue = ((g_norm - b_norm) / delta) % 6.0
-        elif c_max == g_norm:
-            hue = (b_norm - r_norm) / delta + 2.0
-        else:
-            hue = (r_norm - g_norm) / delta + 4.0
-
-        hue *= 60.0
-        if hue < 0:
-            hue += 360.0
+        hue = _calc_hue(r_norm, g_norm, b_norm, c_max, delta)
 
     return (round(hue), round(saturation * 100), round(value * 100))
 

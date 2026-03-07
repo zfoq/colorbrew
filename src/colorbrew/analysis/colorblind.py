@@ -7,7 +7,8 @@ Viénot 1999 / Brettel 1997 matrix transformations.
 
 from __future__ import annotations
 
-from colorbrew.analysis.contrast import _linearize
+from colorbrew.conversion.gamma import delinearize, linearize
+from colorbrew.types import ColorVisionDeficiency
 
 # Pre-multiplied simulation matrices operating in linear RGB space.
 # Protanopia and deuteranopia: Viénot et al. 1999
@@ -31,17 +32,8 @@ _MATRICES: dict[str, list[list[float]]] = {
 }
 
 
-def _delinearize(v: float) -> int:
-    """Convert a linear-light float back to an sRGB 0-255 integer."""
-    if v <= 0.0031308:
-        out = v * 12.92
-    else:
-        out = 1.055 * (v ** (1.0 / 2.4)) - 0.055
-    return round(max(0.0, min(1.0, out)) * 255)
-
-
 def simulate(
-    r: int, g: int, b: int, deficiency: str
+    r: int, g: int, b: int, deficiency: ColorVisionDeficiency
 ) -> tuple[int, int, int]:
     """Simulate how a color appears with a color vision deficiency.
 
@@ -66,9 +58,9 @@ def simulate(
         )
 
     # sRGB → linear
-    rl = _linearize(r)
-    gl = _linearize(g)
-    bl = _linearize(b)
+    rl = linearize(r)
+    gl = linearize(g)
+    bl = linearize(b)
 
     # Apply simulation matrix
     r_sim = matrix[0][0] * rl + matrix[0][1] * gl + matrix[0][2] * bl
@@ -76,4 +68,4 @@ def simulate(
     b_sim = matrix[2][0] * rl + matrix[2][1] * gl + matrix[2][2] * bl
 
     # linear → sRGB
-    return (_delinearize(r_sim), _delinearize(g_sim), _delinearize(b_sim))
+    return (delinearize(r_sim), delinearize(g_sim), delinearize(b_sim))

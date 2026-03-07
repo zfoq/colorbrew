@@ -6,13 +6,7 @@ the W3C Web Content Accessibility Guidelines (WCAG) 2.1.
 
 from __future__ import annotations
 
-
-def _linearize(channel: int) -> float:
-    """Convert an sRGB 0-255 channel to linear-light value."""
-    v = channel / 255.0
-    if v <= 0.04045:
-        return v / 12.92
-    return ((v + 0.055) / 1.055) ** 2.4
+from colorbrew.conversion.gamma import linearize as _linearize
 
 
 def relative_luminance(r: int, g: int, b: int) -> float:

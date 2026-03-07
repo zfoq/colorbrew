@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import math
 
-from colorbrew.analysis.contrast import _linearize
+from colorbrew.conversion.gamma import SRGB_TO_XYZ, linearize
+from colorbrew.types import DistanceMethod
 
 # D65 illuminant reference white (2-degree observer)
 _XN = 0.95047
@@ -41,14 +42,14 @@ def rgb_to_lab(r: int, g: int, b: int) -> tuple[float, float, float]:
         Tuple of (L*, a*, b*) where L* is 0-100 and a*, b* are unbounded.
     """
     # sRGB -> linear RGB (0-1)
-    rl = _linearize(r)
-    gl = _linearize(g)
-    bl = _linearize(b)
+    rl = linearize(r)
+    gl = linearize(g)
+    bl = linearize(b)
 
     # Linear RGB -> CIE XYZ (D65)
-    x = 0.4124564 * rl + 0.3575761 * gl + 0.1804375 * bl
-    y = 0.2126729 * rl + 0.7151522 * gl + 0.0721750 * bl
-    z = 0.0193339 * rl + 0.1191920 * gl + 0.9503041 * bl
+    x = SRGB_TO_XYZ[0][0] * rl + SRGB_TO_XYZ[0][1] * gl + SRGB_TO_XYZ[0][2] * bl
+    y = SRGB_TO_XYZ[1][0] * rl + SRGB_TO_XYZ[1][1] * gl + SRGB_TO_XYZ[1][2] * bl
+    z = SRGB_TO_XYZ[2][0] * rl + SRGB_TO_XYZ[2][1] * gl + SRGB_TO_XYZ[2][2] * bl
 
     # XYZ -> L*a*b*
     fx = _lab_f(x / _XN)
@@ -192,7 +193,7 @@ def delta_e_2000(
 def distance(
     r1: int, g1: int, b1: int,
     r2: int, g2: int, b2: int,
-    method: str = "ciede2000",
+    method: DistanceMethod = "ciede2000",
 ) -> float:
     """Calculate the distance between two RGB colors.
 
