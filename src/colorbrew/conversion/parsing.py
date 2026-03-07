@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import re
 
-from colorbrew.conversion.converters import hex_to_rgb, hsl_to_rgb
+from colorbrew.conversion.converters import hex_to_rgb, hex_to_rgba, hsl_to_rgb
+from colorbrew.conversion.css_output import validate_alpha
 from colorbrew.data.named_colors import NAMED_COLORS
 from colorbrew.exceptions import ColorParseError, ColorValueError
 
@@ -38,30 +39,10 @@ _HSL_MODERN_RE = re.compile(
 )
 
 
-def _parse_alpha(raw: str | None) -> float:
-    """Parse an optional alpha string to a float 0.0-1.0."""
-    if raw is None or raw == "":
-        return 1.0
-    if raw.endswith("%"):
-        val = float(raw[:-1]) / 100.0
-    else:
-        val = float(raw)
-    if val < 0.0 or val > 1.0:
-        raise ColorValueError(f"Alpha must be 0.0-1.0, got {val}")
-    return val
-
-
 def parse_string(value: str) -> tuple[int, int, int]:
-    """Parse a color string into an RGB tuple.
+    """Parse a color string into an RGB tuple, discarding any alpha.
 
-    Accepts hex strings (3/4/6/8-digit), CSS ``rgb()`` / ``rgba()`` /
-    ``hsl()`` / ``hsla()`` function strings in both legacy (comma-separated)
-    and modern (space-separated, CSS Color Level 4) syntax, and CSS named
-    color strings (case-insensitive).
-
-    When an alpha value is present in the input, it is parsed and validated
-    but discarded — only the RGB channels are returned. Use
-    ``parse_string_with_alpha`` to preserve the alpha channel.
+    Convenience wrapper around ``parse_string_with_alpha``.
 
     Args:
         value: Color string to parse.
@@ -70,10 +51,22 @@ def parse_string(value: str) -> tuple[int, int, int]:
         Validated RGB tuple (r, g, b) with values 0-255.
 
     Raises:
-        ColorParseError: If the string cannot be parsed as any known format.
+        ColorParseError: If the string cannot be parsed.
     """
     rgb, _alpha = parse_string_with_alpha(value)
     return rgb
+
+
+def _parse_alpha(raw: str | None) -> float:
+    """Parse an optional alpha string to a float 0.0-1.0."""
+    if raw is None or raw == "":
+        return 1.0
+    if raw.endswith("%"):
+        val = float(raw[:-1]) / 100.0
+    else:
+        val = float(raw)
+    validate_alpha(val)
+    return val
 
 
 def parse_string_with_alpha(value: str) -> tuple[tuple[int, int, int], float]:
@@ -96,20 +89,7 @@ def parse_string_with_alpha(value: str) -> tuple[tuple[int, int, int], float]:
     # Try hex (3/4/6/8 digit)
     m = _HEX_RE.match(value)
     if m:
-        h = m.group(1)
-        if len(h) == 3:
-            h = h[0] * 2 + h[1] * 2 + h[2] * 2
-            alpha = 1.0
-        elif len(h) == 4:
-            alpha = int(h[3] * 2, 16) / 255.0
-            h = h[0] * 2 + h[1] * 2 + h[2] * 2
-        elif len(h) == 8:
-            alpha = int(h[6:8], 16) / 255.0
-            h = h[0:6]
-        else:
-            alpha = 1.0
-        rgb = (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
-        return (rgb, alpha)
+        return hex_to_rgba(value)
 
     # Try rgb/rgba — legacy comma-separated
     rm = _RGB_FUNC_RE.match(value)

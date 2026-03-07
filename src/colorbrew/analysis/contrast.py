@@ -6,6 +6,8 @@ the W3C Web Content Accessibility Guidelines (WCAG) 2.1.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from colorbrew.conversion.converters import hsl_to_rgb, rgb_to_hsl
 from colorbrew.conversion.gamma import linearize as _linearize
 
@@ -144,7 +146,7 @@ def suggest_text_color(
 def find_accessible_color(
     rgb: tuple[int, int, int],
     target: tuple[int, int, int],
-    level: str = "aa",
+    level: Literal["aa", "aaa"] = "aa",
     large: bool = False,
 ) -> tuple[int, int, int]:
     """Find the closest color to *target* that meets contrast requirements.
@@ -152,6 +154,8 @@ def find_accessible_color(
     Adjusts the lightness of *target* in HSL space (toward black or white)
     until the WCAG contrast threshold against *rgb* is met. If *target*
     already meets the requirement, it is returned unchanged.
+
+    Uses binary search over the lightness range for efficiency.
 
     Args:
         rgb: The fixed background color as (r, g, b).
@@ -173,17 +177,31 @@ def find_accessible_color(
     h, s, lit = rgb_to_hsl(*target)
     bg_lum = relative_luminance(*rgb)
 
-    # Decide direction: if background is dark, go lighter; otherwise darker
+    # Binary search: if background is dark, search lighter; otherwise darker
     if bg_lum <= 0.5:
-        step = 1
+        lo, hi = lit, 100
     else:
-        step = -1
+        lo, hi = 0, lit
 
-    for _ in range(101):
-        lit = max(0, min(100, lit + step))
-        candidate = hsl_to_rgb(h, s, lit)
+    best = None
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        candidate = hsl_to_rgb(h, s, mid)
         if contrast_ratio(rgb, candidate) >= threshold:
-            return candidate
+            best = candidate
+            # Try to stay closer to the original lightness
+            if bg_lum <= 0.5:
+                hi = mid - 1
+            else:
+                lo = mid + 1
+        else:
+            if bg_lum <= 0.5:
+                lo = mid + 1
+            else:
+                hi = mid - 1
+
+    if best is not None:
+        return best
 
     # Fallback: return black or white
     return suggest_text_color(*rgb)

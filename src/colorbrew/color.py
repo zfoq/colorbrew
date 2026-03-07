@@ -157,6 +157,20 @@ class Color:
         return _new(_conv.hsv_to_rgb(h, s, v))
 
     @classmethod
+    def from_lab(cls, ls: float, a: float, b: float) -> Color:
+        """Create a Color from CIE L*a*b* values (D65, 2-degree observer).
+
+        Args:
+            ls: L* lightness (0-100).
+            a: a* green-red axis (unbounded).
+            b: b* blue-yellow axis (unbounded).
+
+        Returns:
+            A new Color instance.
+        """
+        return _new(_delta_e.lab_to_rgb(ls, a, b))
+
+    @classmethod
     def from_name(cls, name: str) -> Color:
         """Create a Color from a CSS named color string.
 
@@ -341,6 +355,22 @@ class Color:
         a = self._alpha if alpha is None else alpha
         return _css.to_css_hsla(*self._rgb, a)
 
+    def css_rgb_modern(self) -> str:
+        """Return a modern CSS Color Level 4 ``rgb()`` string.
+
+        Uses space-separated syntax: ``rgb(52 152 219)`` or
+        ``rgb(52 152 219 / 0.8)`` when alpha < 1.0.
+        """
+        return _css.to_css_rgb_modern(*self._rgb, self._alpha)
+
+    def css_hsl_modern(self) -> str:
+        """Return a modern CSS Color Level 4 ``hsl()`` string.
+
+        Uses space-separated syntax: ``hsl(204 70% 53%)`` or
+        ``hsl(204 70% 53% / 0.8)`` when alpha < 1.0.
+        """
+        return _css.to_css_hsl_modern(*self._rgb, self._alpha)
+
     # --- Methods: alpha ---
 
     def with_alpha(self, alpha: float) -> Color:
@@ -355,8 +385,7 @@ class Color:
         Raises:
             ColorValueError: If alpha is outside 0.0-1.0.
         """
-        if not (0.0 <= alpha <= 1.0):
-            raise ColorValueError(f"Alpha must be 0.0-1.0, got {alpha}")
+        _css.validate_alpha(alpha)
         return _new(self._rgb, alpha)
 
     @property
@@ -699,7 +728,7 @@ class Color:
     def find_accessible_color(
         self,
         target: Color,
-        level: str = "aa",
+        level: Literal["aa", "aaa"] = "aa",
         large: bool = False,
     ) -> Color:
         """Find the closest color to *target* that meets contrast requirements.

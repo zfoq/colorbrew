@@ -36,10 +36,37 @@ def hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
     Returns:
         Tuple of (red, green, blue) integers in range 0-255.
     """
+    rgb, _alpha = hex_to_rgba(hex_str)
+    return rgb
+
+
+def hex_to_rgba(hex_str: str) -> tuple[tuple[int, int, int], float]:
+    """Convert a hex color string to an RGB tuple and alpha value.
+
+    Accepts 3, 4, 6, or 8-digit hex strings with or without a leading ``#``.
+    For 4-digit hex, the fourth digit is alpha. For 8-digit hex, the last
+    two digits are alpha.
+
+    Args:
+        hex_str: Hex color string (e.g. ``"#3498db"``, ``"#3498dbcc"``).
+
+    Returns:
+        Tuple of ((red, green, blue), alpha) where alpha is 0.0-1.0.
+    """
     h = hex_str.lstrip("#")
     if len(h) == 3:
         h = h[0] * 2 + h[1] * 2 + h[2] * 2
-    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+        alpha = 1.0
+    elif len(h) == 4:
+        alpha = int(h[3] * 2, 16) / 255.0
+        h = h[0] * 2 + h[1] * 2 + h[2] * 2
+    elif len(h) == 8:
+        alpha = int(h[6:8], 16) / 255.0
+        h = h[0:6]
+    else:
+        alpha = 1.0
+    rgb = (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+    return (rgb, alpha)
 
 
 def rgb_to_hex(r: int, g: int, b: int) -> str:

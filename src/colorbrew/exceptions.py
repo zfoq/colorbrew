@@ -11,9 +11,9 @@ class ColorBrewError(Exception):
     """Base exception for the ColorBrew library."""
 
 
-class ColorValueError(ColorBrewError):
+class ColorValueError(ColorBrewError, ValueError):
     """Raised when an RGB, HSL, or CMYK value is out of its valid range."""
 
 
-class ColorParseError(ColorBrewError):
+class ColorParseError(ColorBrewError, ValueError):
     """Raised when an input string cannot be parsed as a color."""

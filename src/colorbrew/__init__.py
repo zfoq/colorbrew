@@ -10,7 +10,9 @@ color distance (CIE76 and CIEDE2000) through a single ``Color`` class.
 
 from __future__ import annotations
 
-from colorbrew.analysis.delta_e import delta_e_76, delta_e_2000, rgb_to_lab
+from importlib.metadata import version as _version
+
+from colorbrew.analysis.delta_e import delta_e_76, delta_e_2000, lab_to_rgb, rgb_to_lab
 from colorbrew.color import Color
 from colorbrew.conversion.converters import (
     cmyk_to_rgb,
@@ -24,6 +26,8 @@ from colorbrew.conversion.converters import (
 )
 from colorbrew.exceptions import ColorBrewError, ColorParseError, ColorValueError
 from colorbrew.types import BlendMode, ColorVisionDeficiency, DistanceMethod, NameMatch
+
+__version__ = _version("colorbrew")
 
 __all__ = [
     "BlendMode",
@@ -40,6 +44,7 @@ __all__ = [
     "hex_to_rgb",
     "hsl_to_rgb",
     "hsv_to_rgb",
+    "lab_to_rgb",
     "rgb_to_cmyk",
     "rgb_to_hex",
     "rgb_to_hsl",

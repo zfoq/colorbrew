@@ -25,7 +25,7 @@ class NameMatch(NamedTuple):
     Args:
         name: CSS color name (e.g. ``"steelblue"``).
         hex: Hex value of the named color (e.g. ``"#4682b4"``).
-        distance: Euclidean distance in RGB space (0.0 = exact match).
+        distance: Distance between input and matched color (0.0 = exact match).
         exact: True when distance is 0.0.
     """
 
