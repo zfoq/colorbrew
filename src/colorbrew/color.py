@@ -25,7 +25,7 @@ from colorbrew.exceptions import ColorParseError, ColorValueError
 from colorbrew.transform import blending as _blending
 from colorbrew.transform import manipulation as _manip
 from colorbrew.transform import palettes as _palettes
-from colorbrew.types import NameMatch
+from colorbrew.types import BlendMode, ColorVisionDeficiency, DistanceMethod, NameMatch
 
 
 class Color:
@@ -89,7 +89,16 @@ class Color:
 
         Returns:
             A new Color instance.
+
+        Raises:
+            ColorValueError: If any value is out of range.
         """
+        if not (0 <= h <= 360):
+            raise ColorValueError(f"Hue must be 0-360, got {h}")
+        if not (0 <= s <= 100):
+            raise ColorValueError(f"Saturation must be 0-100, got {s}")
+        if not (0 <= lit <= 100):
+            raise ColorValueError(f"Lightness must be 0-100, got {lit}")
         rgb = _conv.hsl_to_rgb(h, s, lit)
         return cls(*rgb)
 
@@ -105,7 +114,13 @@ class Color:
 
         Returns:
             A new Color instance.
+
+        Raises:
+            ColorValueError: If any value is out of range.
         """
+        for name, val in (("Cyan", c), ("Magenta", m), ("Yellow", y), ("Key", k)):
+            if not (0 <= val <= 100):
+                raise ColorValueError(f"{name} must be 0-100, got {val}")
         rgb = _conv.cmyk_to_rgb(c, m, y, k)
         return cls(*rgb)
 
@@ -120,7 +135,16 @@ class Color:
 
         Returns:
             A new Color instance.
+
+        Raises:
+            ColorValueError: If any value is out of range.
         """
+        if not (0 <= h <= 360):
+            raise ColorValueError(f"Hue must be 0-360, got {h}")
+        if not (0 <= s <= 100):
+            raise ColorValueError(f"Saturation must be 0-100, got {s}")
+        if not (0 <= v <= 100):
+            raise ColorValueError(f"Value must be 0-100, got {v}")
         rgb = _conv.hsv_to_rgb(h, s, v)
         return cls(*rgb)
 
@@ -283,7 +307,7 @@ class Color:
 
     # --- Methods: name lookup ---
 
-    def closest_name(self, method: str = "euclidean") -> NameMatch:
+    def closest_name(self, method: DistanceMethod = "euclidean") -> NameMatch:
         """Find the closest CSS named color.
 
         Args:
@@ -295,7 +319,7 @@ class Color:
         """
         return _naming.find_closest_name(*self._rgb, method)
 
-    def closest_tailwind(self, method: str = "euclidean") -> NameMatch:
+    def closest_tailwind(self, method: DistanceMethod = "euclidean") -> NameMatch:
         """Find the closest Tailwind CSS color.
 
         Args:
@@ -307,7 +331,7 @@ class Color:
         """
         return _naming.find_closest_tailwind(*self._rgb, method)
 
-    def closest_material(self, method: str = "euclidean") -> NameMatch:
+    def closest_material(self, method: DistanceMethod = "euclidean") -> NameMatch:
         """Find the closest Material Design color.
 
         Args:
@@ -321,7 +345,7 @@ class Color:
 
     # --- Methods: color distance ---
 
-    def distance(self, other: Color, method: str = "ciede2000") -> float:
+    def distance(self, other: Color, method: DistanceMethod = "ciede2000") -> float:
         """Calculate the perceptual distance to another color.
 
         Args:
@@ -461,7 +485,7 @@ class Color:
 
     # --- Methods: blending ---
 
-    def blend(self, other: Color, mode: str = "multiply") -> Color:
+    def blend(self, other: Color, mode: BlendMode = "multiply") -> Color:
         """Apply a Photoshop-style blend mode with another color.
 
         Args:
@@ -576,7 +600,7 @@ class Color:
 
     # --- Methods: color blindness simulation ---
 
-    def simulate_colorblind(self, deficiency: str) -> Color:
+    def simulate_colorblind(self, deficiency: ColorVisionDeficiency) -> Color:
         """Simulate how this color appears with a color vision deficiency.
 
         Args:
