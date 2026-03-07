@@ -6,6 +6,8 @@ apply the adjustment, and convert back to RGB.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from colorbrew.conversion.converters import hsl_to_rgb, rgb_to_hsl
 
 
@@ -186,10 +188,59 @@ def tone(
     return mix((r, g, b), (128, 128, 128), amount)
 
 
+def _mix_lab(
+    rgb1: tuple[int, int, int],
+    rgb2: tuple[int, int, int],
+    weight: float,
+) -> tuple[int, int, int]:
+    """Blend two colors by linear interpolation in CIE L*a*b* space."""
+    from colorbrew.analysis.delta_e import rgb_to_lab
+    from colorbrew.conversion.gamma import delinearize
+
+    w = _clamp(weight, 0.0, 1.0)
+    l1, a1, b1 = rgb_to_lab(*rgb1)
+    l2, a2, b2 = rgb_to_lab(*rgb2)
+
+    # Interpolate in Lab
+    ls = l1 + (l2 - l1) * w
+    a = a1 + (a2 - a1) * w
+    b = b1 + (b2 - b1) * w
+
+    # Lab -> XYZ -> linear RGB -> sRGB
+    _XN = 0.95047
+    _YN = 1.00000
+    _ZN = 1.08883
+    _EPSILON = 216 / 24389
+    _KAPPA = 24389 / 27
+
+    fy = (ls + 16.0) / 116.0
+    fx = a / 500.0 + fy
+    fz = fy - b / 200.0
+
+    fx3 = fx ** 3
+    fz3 = fz ** 3
+
+    xr = fx3 if fx3 > _EPSILON else (116.0 * fx - 16.0) / _KAPPA
+    yr = ((ls + 16.0) / 116.0) ** 3 if ls > _KAPPA * _EPSILON else ls / _KAPPA
+    zr = fz3 if fz3 > _EPSILON else (116.0 * fz - 16.0) / _KAPPA
+
+    x = xr * _XN
+    y = yr * _YN
+    z = zr * _ZN
+
+    # XYZ -> linear RGB (inverse of SRGB_TO_XYZ)
+    rl = 3.2404542 * x - 1.5371385 * y - 0.4985314 * z
+    gl = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z
+    bl = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z
+
+    return (delinearize(rl), delinearize(gl), delinearize(bl))
+
+
 def gradient(
     rgb1: tuple[int, int, int],
     rgb2: tuple[int, int, int],
     steps: int = 5,
+    space: Literal["rgb", "lab"] = "rgb",
 ) -> list[tuple[int, int, int]]:
     """Generate a list of colors between two endpoints.
 
@@ -197,10 +248,12 @@ def gradient(
         rgb1: Start color as (r, g, b).
         rgb2: End color as (r, g, b).
         steps: Number of colors to generate (minimum 2).
+        space: Interpolation color space — ``"rgb"`` or ``"lab"``.
 
     Returns:
         List of RGB tuples from ``rgb1`` to ``rgb2``.
     """
     if steps < 2:
         return [rgb1]
-    return [mix(rgb1, rgb2, i / (steps - 1)) for i in range(steps)]
+    interp = _mix_lab if space == "lab" else mix
+    return [interp(rgb1, rgb2, i / (steps - 1)) for i in range(steps)]
