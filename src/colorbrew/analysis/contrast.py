@@ -112,3 +112,79 @@ def meets_aaa(
     ratio = contrast_ratio(rgb1, rgb2)
     threshold = 4.5 if large else 7.0
     return ratio >= threshold
+
+
+def suggest_text_color(
+    r: int, g: int, b: int,
+) -> tuple[int, int, int]:
+    """Suggest black or white text for readability on a given background.
+
+    Returns whichever of black ``(0, 0, 0)`` or white ``(255, 255, 255)``
+    produces the higher WCAG contrast ratio against the background.
+
+    Args:
+        r: Red channel of the background (0-255).
+        g: Green channel of the background (0-255).
+        b: Blue channel of the background (0-255).
+
+    Returns:
+        ``(0, 0, 0)`` or ``(255, 255, 255)``.
+    """
+    lum = relative_luminance(r, g, b)
+    # Contrast with white: (1.05) / (lum + 0.05)
+    # Contrast with black: (lum + 0.05) / (0.05)
+    # White wins when (1.05) / (lum + 0.05) > (lum + 0.05) / 0.05
+    # Simplifies to: (lum + 0.05)^2 < 1.05 * 0.05
+    if (lum + 0.05) ** 2 < 1.05 * 0.05:
+        return (255, 255, 255)
+    return (0, 0, 0)
+
+
+def find_accessible_color(
+    rgb: tuple[int, int, int],
+    target: tuple[int, int, int],
+    level: str = "aa",
+    large: bool = False,
+) -> tuple[int, int, int]:
+    """Find the closest color to *target* that meets contrast requirements.
+
+    Adjusts the lightness of *target* in HSL space (toward black or white)
+    until the WCAG contrast threshold against *rgb* is met. If *target*
+    already meets the requirement, it is returned unchanged.
+
+    Args:
+        rgb: The fixed background color as (r, g, b).
+        target: The desired foreground color as (r, g, b).
+        level: ``"aa"`` (4.5:1 / 3:1) or ``"aaa"`` (7:1 / 4.5:1).
+        large: True for large text (lower thresholds).
+
+    Returns:
+        An accessible RGB tuple close to *target*.
+    """
+    from colorbrew.conversion.converters import hsl_to_rgb, rgb_to_hsl
+
+    if level == "aaa":
+        threshold = 4.5 if large else 7.0
+    else:
+        threshold = 3.0 if large else 4.5
+
+    if contrast_ratio(rgb, target) >= threshold:
+        return target
+
+    h, s, lit = rgb_to_hsl(*target)
+    bg_lum = relative_luminance(*rgb)
+
+    # Decide direction: if background is dark, go lighter; otherwise darker
+    if bg_lum <= 0.5:
+        step = 1
+    else:
+        step = -1
+
+    for _ in range(101):
+        lit = max(0, min(100, lit + step))
+        candidate = hsl_to_rgb(h, s, lit)
+        if contrast_ratio(rgb, candidate) >= threshold:
+            return candidate
+
+    # Fallback: return black or white
+    return suggest_text_color(*rgb)
