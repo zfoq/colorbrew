@@ -1,14 +1,15 @@
 """Core Color class — the main entry point for the ColorBrew library.
 
-Stores a color internally as an RGB tuple of integers (0-255). All
-transformation methods return new ``Color`` instances; nothing is mutated.
+Stores a color internally as an RGB tuple of integers (0-255) and an
+optional alpha channel (0.0-1.0, default 1.0). All transformation
+methods return new ``Color`` instances; nothing is mutated.
 """
 
 from __future__ import annotations
 
 import random
 from collections.abc import Iterator
-from typing import overload
+from typing import Literal, overload
 
 from colorbrew.analysis import colorblind as _cb
 from colorbrew.analysis import contrast as _contrast
@@ -17,7 +18,7 @@ from colorbrew.analysis import naming as _naming
 from colorbrew.analysis import temperature as _temp
 from colorbrew.conversion import converters as _conv
 from colorbrew.conversion import css_output as _css
-from colorbrew.conversion.parsing import parse_rgb_args, parse_string
+from colorbrew.conversion.parsing import parse_rgb_args, parse_string_with_alpha
 from colorbrew.data.material_colors import MATERIAL_COLORS
 from colorbrew.data.named_colors import NAMED_COLORS
 from colorbrew.data.tailwind_colors import TAILWIND_COLORS
@@ -25,14 +26,23 @@ from colorbrew.exceptions import ColorParseError, ColorValueError
 from colorbrew.transform import blending as _blending
 from colorbrew.transform import manipulation as _manip
 from colorbrew.transform import palettes as _palettes
-from colorbrew.types import NameMatch
+from colorbrew.types import BlendMode, ColorVisionDeficiency, DistanceMethod, NameMatch
+
+
+def _new(rgb: tuple[int, int, int], alpha: float = 1.0) -> Color:
+    """Internal fast-path constructor that skips validation."""
+    c = object.__new__(Color)
+    c._rgb = rgb
+    c._alpha = alpha
+    return c
 
 
 class Color:
     """An immutable color value with conversion, manipulation, and analysis.
 
-    Stores the color internally as an RGB tuple of integers (0-255).
-    All transformation methods return new ``Color`` instances.
+    Stores the color internally as an RGB tuple of integers (0-255) and
+    an alpha channel (0.0-1.0). All transformation methods return new
+    ``Color`` instances.
 
     Args:
         *args: Either a single string (hex, CSS function, or named color)
@@ -43,7 +53,7 @@ class Color:
         ColorValueError: If integer arguments are outside 0-255.
     """
 
-    __slots__ = ("_rgb",)
+    __slots__ = ("_alpha", "_rgb")
 
     @overload
     def __init__(self, value: str, /) -> None: ...
@@ -56,7 +66,7 @@ class Color:
         if len(args) == 1:
             arg = args[0]
             if isinstance(arg, str):
-                self._rgb = parse_string(arg)
+                self._rgb, self._alpha = parse_string_with_alpha(arg)
             elif isinstance(arg, int):
                 raise ColorValueError(
                     "Single integer is not a valid color. "
@@ -71,6 +81,7 @@ class Color:
             if not (isinstance(r, int) and isinstance(g, int) and isinstance(b, int)):
                 raise ColorValueError("RGB values must be integers.")
             self._rgb = parse_rgb_args(r, g, b)  # type: ignore[arg-type]
+            self._alpha = 1.0
         else:
             raise ColorParseError(
                 f"Color() takes 1 or 3 arguments, got {len(args)}."
@@ -89,9 +100,17 @@ class Color:
 
         Returns:
             A new Color instance.
+
+        Raises:
+            ColorValueError: If any value is out of range.
         """
-        rgb = _conv.hsl_to_rgb(h, s, lit)
-        return cls(*rgb)
+        if not (0 <= h <= 360):
+            raise ColorValueError(f"Hue must be 0-360, got {h}")
+        if not (0 <= s <= 100):
+            raise ColorValueError(f"Saturation must be 0-100, got {s}")
+        if not (0 <= lit <= 100):
+            raise ColorValueError(f"Lightness must be 0-100, got {lit}")
+        return _new(_conv.hsl_to_rgb(h, s, lit))
 
     @classmethod
     def from_cmyk(cls, c: int, m: int, y: int, k: int) -> Color:
@@ -105,9 +124,14 @@ class Color:
 
         Returns:
             A new Color instance.
+
+        Raises:
+            ColorValueError: If any value is out of range.
         """
-        rgb = _conv.cmyk_to_rgb(c, m, y, k)
-        return cls(*rgb)
+        for name, val in (("Cyan", c), ("Magenta", m), ("Yellow", y), ("Key", k)):
+            if not (0 <= val <= 100):
+                raise ColorValueError(f"{name} must be 0-100, got {val}")
+        return _new(_conv.cmyk_to_rgb(c, m, y, k))
 
     @classmethod
     def from_hsv(cls, h: int, s: int, v: int) -> Color:
@@ -120,9 +144,31 @@ class Color:
 
         Returns:
             A new Color instance.
+
+        Raises:
+            ColorValueError: If any value is out of range.
         """
-        rgb = _conv.hsv_to_rgb(h, s, v)
-        return cls(*rgb)
+        if not (0 <= h <= 360):
+            raise ColorValueError(f"Hue must be 0-360, got {h}")
+        if not (0 <= s <= 100):
+            raise ColorValueError(f"Saturation must be 0-100, got {s}")
+        if not (0 <= v <= 100):
+            raise ColorValueError(f"Value must be 0-100, got {v}")
+        return _new(_conv.hsv_to_rgb(h, s, v))
+
+    @classmethod
+    def from_lab(cls, ls: float, a: float, b: float) -> Color:
+        """Create a Color from CIE L*a*b* values (D65, 2-degree observer).
+
+        Args:
+            ls: L* lightness (0-100).
+            a: a* green-red axis (unbounded).
+            b: b* blue-yellow axis (unbounded).
+
+        Returns:
+            A new Color instance.
+        """
+        return _new(_delta_e.lab_to_rgb(ls, a, b))
 
     @classmethod
     def from_name(cls, name: str) -> Color:
@@ -140,7 +186,7 @@ class Color:
         lower = name.lower().strip()
         if lower not in NAMED_COLORS:
             raise ColorParseError(f"Unknown color name: {name!r}")
-        return cls(NAMED_COLORS[lower])
+        return _new(_conv.hex_to_rgb(NAMED_COLORS[lower]))
 
     @classmethod
     def from_tailwind(cls, name: str) -> Color:
@@ -158,7 +204,7 @@ class Color:
         lower = name.lower().strip()
         if lower not in TAILWIND_COLORS:
             raise ColorParseError(f"Unknown Tailwind color: {name!r}")
-        return cls(TAILWIND_COLORS[lower])
+        return _new(_conv.hex_to_rgb(TAILWIND_COLORS[lower]))
 
     @classmethod
     def from_material(cls, name: str) -> Color:
@@ -176,7 +222,7 @@ class Color:
         lower = name.lower().strip()
         if lower not in MATERIAL_COLORS:
             raise ColorParseError(f"Unknown Material Design color: {name!r}")
-        return cls(MATERIAL_COLORS[lower])
+        return _new(_conv.hex_to_rgb(MATERIAL_COLORS[lower]))
 
     @classmethod
     def random(cls) -> Color:
@@ -185,11 +231,11 @@ class Color:
         Returns:
             A new Color with random RGB values.
         """
-        return cls(
+        return _new((
             random.randint(0, 255),
             random.randint(0, 255),
             random.randint(0, 255),
-        )
+        ))
 
     # --- Properties: channel access ---
 
@@ -209,16 +255,32 @@ class Color:
         return self._rgb[2]
 
     @property
+    def alpha(self) -> float:
+        """Alpha channel (0.0-1.0, default 1.0)."""
+        return self._alpha
+
+    @property
     def rgb(self) -> tuple[int, int, int]:
         """RGB tuple ``(r, g, b)``."""
         return self._rgb
+
+    @property
+    def rgba(self) -> tuple[int, int, int, float]:
+        """RGBA tuple ``(r, g, b, alpha)``."""
+        return (*self._rgb, self._alpha)
 
     # --- Properties: format conversion ---
 
     @property
     def hex(self) -> str:
-        """Lowercase 6-digit hex string with ``#`` prefix."""
-        return _conv.rgb_to_hex(*self._rgb)
+        """Lowercase 6-digit hex string with ``#`` prefix.
+
+        If alpha < 1.0, returns an 8-digit hex string with alpha suffix.
+        """
+        h = _conv.rgb_to_hex(*self._rgb)
+        if self._alpha < 1.0:
+            return f"{h}{round(self._alpha * 255):02x}"
+        return h
 
     @property
     def hsl(self) -> tuple[int, int, int]:
@@ -249,41 +311,93 @@ class Color:
 
     @property
     def css_rgb(self) -> str:
-        """CSS ``rgb()`` function string."""
+        """CSS ``rgb()`` or ``rgba()`` function string.
+
+        Automatically includes alpha when alpha < 1.0.
+        """
+        if self._alpha < 1.0:
+            return _css.to_css_rgba(*self._rgb, self._alpha)
         return _css.to_css_rgb(*self._rgb)
 
     @property
     def css_hsl(self) -> str:
-        """CSS ``hsl()`` function string."""
+        """CSS ``hsl()`` or ``hsla()`` function string.
+
+        Automatically includes alpha when alpha < 1.0.
+        """
+        if self._alpha < 1.0:
+            return _css.to_css_hsla(*self._rgb, self._alpha)
         return _css.to_css_hsl(*self._rgb)
 
     # --- Methods: CSS / HTML output ---
 
-    def css_rgba(self, alpha: float = 1.0) -> str:
+    def css_rgba(self, alpha: float | None = None) -> str:
         """Return a CSS ``rgba()`` function string.
 
         Args:
-            alpha: Alpha value (0.0-1.0).
+            alpha: Override alpha (0.0-1.0). Defaults to the color's alpha.
 
         Returns:
             String like ``"rgba(52, 152, 219, 0.8)"``.
         """
-        return _css.to_css_rgba(*self._rgb, alpha)
+        a = self._alpha if alpha is None else alpha
+        return _css.to_css_rgba(*self._rgb, a)
 
-    def css_hsla(self, alpha: float = 1.0) -> str:
+    def css_hsla(self, alpha: float | None = None) -> str:
         """Return a CSS ``hsla()`` function string.
 
         Args:
-            alpha: Alpha value (0.0-1.0).
+            alpha: Override alpha (0.0-1.0). Defaults to the color's alpha.
 
         Returns:
             String like ``"hsla(204, 70%, 53%, 0.8)"``.
         """
-        return _css.to_css_hsla(*self._rgb, alpha)
+        a = self._alpha if alpha is None else alpha
+        return _css.to_css_hsla(*self._rgb, a)
+
+    def css_rgb_modern(self) -> str:
+        """Return a modern CSS Color Level 4 ``rgb()`` string.
+
+        Uses space-separated syntax: ``rgb(52 152 219)`` or
+        ``rgb(52 152 219 / 0.8)`` when alpha < 1.0.
+        """
+        return _css.to_css_rgb_modern(*self._rgb, self._alpha)
+
+    def css_hsl_modern(self) -> str:
+        """Return a modern CSS Color Level 4 ``hsl()`` string.
+
+        Uses space-separated syntax: ``hsl(204 70% 53%)`` or
+        ``hsl(204 70% 53% / 0.8)`` when alpha < 1.0.
+        """
+        return _css.to_css_hsl_modern(*self._rgb, self._alpha)
+
+    # --- Methods: alpha ---
+
+    def with_alpha(self, alpha: float) -> Color:
+        """Return a copy of this color with a different alpha value.
+
+        Args:
+            alpha: New alpha value (0.0-1.0).
+
+        Returns:
+            A new Color with the specified alpha.
+
+        Raises:
+            ColorValueError: If alpha is outside 0.0-1.0.
+        """
+        _css.validate_alpha(alpha)
+        return _new(self._rgb, alpha)
+
+    @property
+    def opaque(self) -> Color:
+        """Return a fully opaque copy (alpha = 1.0)."""
+        if self._alpha == 1.0:
+            return self
+        return _new(self._rgb, 1.0)
 
     # --- Methods: name lookup ---
 
-    def closest_name(self, method: str = "euclidean") -> NameMatch:
+    def closest_name(self, method: DistanceMethod = "euclidean") -> NameMatch:
         """Find the closest CSS named color.
 
         Args:
@@ -295,7 +409,7 @@ class Color:
         """
         return _naming.find_closest_name(*self._rgb, method)
 
-    def closest_tailwind(self, method: str = "euclidean") -> NameMatch:
+    def closest_tailwind(self, method: DistanceMethod = "euclidean") -> NameMatch:
         """Find the closest Tailwind CSS color.
 
         Args:
@@ -307,7 +421,7 @@ class Color:
         """
         return _naming.find_closest_tailwind(*self._rgb, method)
 
-    def closest_material(self, method: str = "euclidean") -> NameMatch:
+    def closest_material(self, method: DistanceMethod = "euclidean") -> NameMatch:
         """Find the closest Material Design color.
 
         Args:
@@ -321,7 +435,7 @@ class Color:
 
     # --- Methods: color distance ---
 
-    def distance(self, other: Color, method: str = "ciede2000") -> float:
+    def distance(self, other: Color, method: DistanceMethod = "ciede2000") -> float:
         """Calculate the perceptual distance to another color.
 
         Args:
@@ -345,7 +459,7 @@ class Color:
         Returns:
             A new Color with increased lightness.
         """
-        return Color(*_manip.lighten(*self._rgb, amount))
+        return _new(_manip.lighten(*self._rgb, amount), self._alpha)
 
     def darken(self, amount: int = 10) -> Color:
         """Return a darker version of this color.
@@ -356,7 +470,7 @@ class Color:
         Returns:
             A new Color with decreased lightness.
         """
-        return Color(*_manip.darken(*self._rgb, amount))
+        return _new(_manip.darken(*self._rgb, amount), self._alpha)
 
     def saturate(self, amount: int = 10) -> Color:
         """Return a more saturated version of this color.
@@ -367,7 +481,7 @@ class Color:
         Returns:
             A new Color with increased saturation.
         """
-        return Color(*_manip.saturate(*self._rgb, amount))
+        return _new(_manip.saturate(*self._rgb, amount), self._alpha)
 
     def desaturate(self, amount: int = 10) -> Color:
         """Return a less saturated version of this color.
@@ -378,7 +492,7 @@ class Color:
         Returns:
             A new Color with decreased saturation.
         """
-        return Color(*_manip.desaturate(*self._rgb, amount))
+        return _new(_manip.desaturate(*self._rgb, amount), self._alpha)
 
     def rotate(self, degrees: int) -> Color:
         """Return a color with shifted hue.
@@ -389,15 +503,15 @@ class Color:
         Returns:
             A new Color with the adjusted hue.
         """
-        return Color(*_manip.rotate_hue(*self._rgb, degrees))
+        return _new(_manip.rotate_hue(*self._rgb, degrees), self._alpha)
 
     def invert(self) -> Color:
         """Return the inverted color (255 minus each channel)."""
-        return Color(*_manip.invert(*self._rgb))
+        return _new(_manip.invert(*self._rgb), self._alpha)
 
     def grayscale(self) -> Color:
         """Return the grayscale version (saturation set to 0)."""
-        return Color(*_manip.grayscale(*self._rgb))
+        return _new(_manip.grayscale(*self._rgb), self._alpha)
 
     def mix(self, other: Color, weight: float = 0.5) -> Color:
         """Blend this color with another using linear interpolation.
@@ -409,7 +523,9 @@ class Color:
         Returns:
             A new blended Color.
         """
-        return Color(*_manip.mix(self._rgb, other._rgb, weight))
+        w = max(0.0, min(1.0, weight))
+        mixed_alpha = self._alpha + (other._alpha - self._alpha) * w
+        return _new(_manip.mix(self._rgb, other._rgb, weight), mixed_alpha)
 
     def shade(self, amount: float = 0.5) -> Color:
         """Return a darker shade by mixing with black.
@@ -420,7 +536,7 @@ class Color:
         Returns:
             A new darker Color.
         """
-        return Color(*_manip.shade(*self._rgb, amount))
+        return _new(_manip.shade(*self._rgb, amount), self._alpha)
 
     def tint(self, amount: float = 0.5) -> Color:
         """Return a lighter tint by mixing with white.
@@ -431,7 +547,7 @@ class Color:
         Returns:
             A new lighter Color.
         """
-        return Color(*_manip.tint(*self._rgb, amount))
+        return _new(_manip.tint(*self._rgb, amount), self._alpha)
 
     def tone(self, amount: float = 0.5) -> Color:
         """Return a muted tone by mixing with gray.
@@ -442,26 +558,36 @@ class Color:
         Returns:
             A new muted Color.
         """
-        return Color(*_manip.tone(*self._rgb, amount))
+        return _new(_manip.tone(*self._rgb, amount), self._alpha)
 
-    def gradient(self, other: Color, steps: int = 5) -> list[Color]:
+    def gradient(
+        self,
+        other: Color,
+        steps: int = 5,
+        space: Literal["rgb", "lab"] = "rgb",
+    ) -> list[Color]:
         """Generate a gradient of colors to another color.
 
         Args:
             other: The end color.
             steps: Number of colors to generate (minimum 2).
+            space: Interpolation color space — ``"rgb"`` or ``"lab"``.
 
         Returns:
             List of Color instances from this color to ``other``.
         """
+        rgbs = _manip.gradient(self._rgb, other._rgb, steps, space)
+        n = len(rgbs)
+        if n <= 1:
+            return [_new(rgb, self._alpha) for rgb in rgbs]
         return [
-            Color(*rgb)
-            for rgb in _manip.gradient(self._rgb, other._rgb, steps)
+            _new(rgb, self._alpha + (other._alpha - self._alpha) * i / (n - 1))
+            for i, rgb in enumerate(rgbs)
         ]
 
     # --- Methods: blending ---
 
-    def blend(self, other: Color, mode: str = "multiply") -> Color:
+    def blend(self, other: Color, mode: BlendMode = "multiply") -> Color:
         """Apply a Photoshop-style blend mode with another color.
 
         Args:
@@ -474,7 +600,7 @@ class Color:
         Raises:
             ValueError: If the mode name is not recognized.
         """
-        return Color(*_blending.blend(self._rgb, other._rgb, mode))
+        return _new(_blending.blend(self._rgb, other._rgb, mode), self._alpha)
 
     # --- Methods: palette generation ---
 
@@ -484,7 +610,7 @@ class Color:
         Returns:
             A new Color with the opposite hue.
         """
-        return Color(*_palettes.complementary(*self._rgb))
+        return _new(_palettes.complementary(*self._rgb), self._alpha)
 
     def analogous(self, n: int = 3, step: int = 30) -> list[Color]:
         """Return analogous colors spread evenly around the hue.
@@ -496,7 +622,10 @@ class Color:
         Returns:
             List of n Color instances.
         """
-        return [Color(*rgb) for rgb in _palettes.analogous(*self._rgb, n, step)]
+        return [
+            _new(rgb, self._alpha)
+            for rgb in _palettes.analogous(*self._rgb, n, step)
+        ]
 
     def triadic(self) -> list[Color]:
         """Return two triadic colors (hue + 120 and + 240 degrees).
@@ -504,7 +633,7 @@ class Color:
         Returns:
             List of 2 Color instances.
         """
-        return [Color(*rgb) for rgb in _palettes.triadic(*self._rgb)]
+        return [_new(rgb, self._alpha) for rgb in _palettes.triadic(*self._rgb)]
 
     def split_complementary(self) -> list[Color]:
         """Return two split-complementary colors (hue + 150 and + 210).
@@ -512,7 +641,10 @@ class Color:
         Returns:
             List of 2 Color instances.
         """
-        return [Color(*rgb) for rgb in _palettes.split_complementary(*self._rgb)]
+        return [
+            _new(rgb, self._alpha)
+            for rgb in _palettes.split_complementary(*self._rgb)
+        ]
 
     def tetradic(self) -> list[Color]:
         """Return three tetradic colors (hue + 90, + 180, + 270).
@@ -520,7 +652,18 @@ class Color:
         Returns:
             List of 3 Color instances.
         """
-        return [Color(*rgb) for rgb in _palettes.tetradic(*self._rgb)]
+        return [_new(rgb, self._alpha) for rgb in _palettes.tetradic(*self._rgb)]
+
+    def scale(self) -> dict[int, Color]:
+        """Generate a Tailwind-like 50-950 shade scale from this color.
+
+        Returns:
+            Dict mapping step numbers (50-950) to Color instances.
+        """
+        return {
+            step: _new(rgb, self._alpha)
+            for step, rgb in _palettes.scale(*self._rgb).items()
+        }
 
     # --- Methods: accessibility ---
 
@@ -574,9 +717,40 @@ class Color:
         """
         return _contrast.meets_aaa(self._rgb, other._rgb, large)
 
+    def suggest_text_color(self) -> Color:
+        """Suggest black or white text for maximum readability on this color.
+
+        Returns:
+            ``Color(0, 0, 0)`` or ``Color(255, 255, 255)``.
+        """
+        return _new(_contrast.suggest_text_color(*self._rgb))
+
+    def find_accessible_color(
+        self,
+        target: Color,
+        level: Literal["aa", "aaa"] = "aa",
+        large: bool = False,
+    ) -> Color:
+        """Find the closest color to *target* that meets contrast requirements.
+
+        Adjusts the lightness of *target* toward black or white until the
+        WCAG contrast threshold against this color is met.
+
+        Args:
+            target: The desired foreground color.
+            level: ``"aa"`` or ``"aaa"``.
+            large: True for large text (lower thresholds).
+
+        Returns:
+            An accessible Color close to *target*.
+        """
+        return _new(
+            _contrast.find_accessible_color(self._rgb, target._rgb, level, large)
+        )
+
     # --- Methods: color blindness simulation ---
 
-    def simulate_colorblind(self, deficiency: str) -> Color:
+    def simulate_colorblind(self, deficiency: ColorVisionDeficiency) -> Color:
         """Simulate how this color appears with a color vision deficiency.
 
         Args:
@@ -590,7 +764,7 @@ class Color:
         Raises:
             ValueError: If the deficiency type is not recognized.
         """
-        return Color(*_cb.simulate(*self._rgb, deficiency))
+        return _new(_cb.simulate(*self._rgb, deficiency), self._alpha)
 
     # --- Methods: temperature ---
 
@@ -615,14 +789,14 @@ class Color:
         return self.hex
 
     def __eq__(self, other: object) -> bool:
-        """Return True if the other Color has the same RGB values."""
+        """Return True if the other Color has the same RGB and alpha values."""
         if not isinstance(other, Color):
             return NotImplemented
-        return self._rgb == other._rgb
+        return self._rgb == other._rgb and self._alpha == other._alpha
 
     def __hash__(self) -> int:
-        """Return hash based on the RGB tuple."""
-        return hash(self._rgb)
+        """Return hash based on the RGB tuple and alpha."""
+        return hash((self._rgb, self._alpha))
 
     def __iter__(self) -> Iterator[int]:
         """Yield r, g, b — enables ``r, g, b = color``."""

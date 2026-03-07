@@ -6,6 +6,9 @@ apply the adjustment, and convert back to RGB.
 
 from __future__ import annotations
 
+from typing import Literal
+
+from colorbrew.analysis.delta_e import lab_to_rgb, rgb_to_lab
 from colorbrew.conversion.converters import hsl_to_rgb, rgb_to_hsl
 
 
@@ -186,10 +189,28 @@ def tone(
     return mix((r, g, b), (128, 128, 128), amount)
 
 
+def _mix_lab(
+    rgb1: tuple[int, int, int],
+    rgb2: tuple[int, int, int],
+    weight: float,
+) -> tuple[int, int, int]:
+    """Blend two colors by linear interpolation in CIE L*a*b* space."""
+    w = _clamp(weight, 0.0, 1.0)
+    l1, a1, b1 = rgb_to_lab(*rgb1)
+    l2, a2, b2 = rgb_to_lab(*rgb2)
+
+    ls = l1 + (l2 - l1) * w
+    a = a1 + (a2 - a1) * w
+    b = b1 + (b2 - b1) * w
+
+    return lab_to_rgb(ls, a, b)
+
+
 def gradient(
     rgb1: tuple[int, int, int],
     rgb2: tuple[int, int, int],
     steps: int = 5,
+    space: Literal["rgb", "lab"] = "rgb",
 ) -> list[tuple[int, int, int]]:
     """Generate a list of colors between two endpoints.
 
@@ -197,10 +218,12 @@ def gradient(
         rgb1: Start color as (r, g, b).
         rgb2: End color as (r, g, b).
         steps: Number of colors to generate (minimum 2).
+        space: Interpolation color space — ``"rgb"`` or ``"lab"``.
 
     Returns:
         List of RGB tuples from ``rgb1`` to ``rgb2``.
     """
     if steps < 2:
         return [rgb1]
-    return [mix(rgb1, rgb2, i / (steps - 1)) for i in range(steps)]
+    interp = _mix_lab if space == "lab" else mix
+    return [interp(rgb1, rgb2, i / (steps - 1)) for i in range(steps)]

@@ -7,6 +7,24 @@ They accept and return primitive types (int, float, str, tuple).
 from __future__ import annotations
 
 
+def _calc_hue(
+    r_norm: float, g_norm: float, b_norm: float,
+    c_max: float, delta: float,
+) -> float:
+    """Calculate hue angle from normalized RGB, shared by HSL and HSV."""
+    if c_max == r_norm:
+        hue = ((g_norm - b_norm) / delta) % 6.0
+    elif c_max == g_norm:
+        hue = (b_norm - r_norm) / delta + 2.0
+    else:
+        hue = (r_norm - g_norm) / delta + 4.0
+
+    hue *= 60.0
+    if hue < 0:
+        hue += 360.0
+    return hue
+
+
 def hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
     """Convert a hex color string to an RGB tuple.
 
@@ -18,10 +36,37 @@ def hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
     Returns:
         Tuple of (red, green, blue) integers in range 0-255.
     """
+    rgb, _alpha = hex_to_rgba(hex_str)
+    return rgb
+
+
+def hex_to_rgba(hex_str: str) -> tuple[tuple[int, int, int], float]:
+    """Convert a hex color string to an RGB tuple and alpha value.
+
+    Accepts 3, 4, 6, or 8-digit hex strings with or without a leading ``#``.
+    For 4-digit hex, the fourth digit is alpha. For 8-digit hex, the last
+    two digits are alpha.
+
+    Args:
+        hex_str: Hex color string (e.g. ``"#3498db"``, ``"#3498dbcc"``).
+
+    Returns:
+        Tuple of ((red, green, blue), alpha) where alpha is 0.0-1.0.
+    """
     h = hex_str.lstrip("#")
     if len(h) == 3:
         h = h[0] * 2 + h[1] * 2 + h[2] * 2
-    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+        alpha = 1.0
+    elif len(h) == 4:
+        alpha = int(h[3] * 2, 16) / 255.0
+        h = h[0] * 2 + h[1] * 2 + h[2] * 2
+    elif len(h) == 8:
+        alpha = int(h[6:8], 16) / 255.0
+        h = h[0:6]
+    else:
+        alpha = 1.0
+    rgb = (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+    return (rgb, alpha)
 
 
 def rgb_to_hex(r: int, g: int, b: int) -> str:
@@ -64,23 +109,11 @@ def rgb_to_hsl(r: int, g: int, b: int) -> tuple[int, int, int]:
         hue = 0.0
         saturation = 0.0
     else:
-        # Saturation
         if lightness <= 0.5:
             saturation = delta / (c_max + c_min)
         else:
             saturation = delta / (2.0 - c_max - c_min)
-
-        # Hue
-        if c_max == r_norm:
-            hue = ((g_norm - b_norm) / delta) % 6.0
-        elif c_max == g_norm:
-            hue = (b_norm - r_norm) / delta + 2.0
-        else:
-            hue = (r_norm - g_norm) / delta + 4.0
-
-        hue *= 60.0
-        if hue < 0:
-            hue += 360.0
+        hue = _calc_hue(r_norm, g_norm, b_norm, c_max, delta)
 
     return (round(hue), round(saturation * 100), round(lightness * 100))
 
@@ -203,20 +236,8 @@ def rgb_to_hsv(r: int, g: int, b: int) -> tuple[int, int, int]:
         hue = 0.0
         saturation = 0.0
     else:
-        # Saturation
         saturation = delta / c_max
-
-        # Hue (same calculation as HSL)
-        if c_max == r_norm:
-            hue = ((g_norm - b_norm) / delta) % 6.0
-        elif c_max == g_norm:
-            hue = (b_norm - r_norm) / delta + 2.0
-        else:
-            hue = (r_norm - g_norm) / delta + 4.0
-
-        hue *= 60.0
-        if hue < 0:
-            hue += 360.0
+        hue = _calc_hue(r_norm, g_norm, b_norm, c_max, delta)
 
     return (round(hue), round(saturation * 100), round(value * 100))
 
