@@ -23,13 +23,16 @@ from colorbrew.conversion.converters import (
     rgb_to_hsv,
 )
 from colorbrew.exceptions import ColorBrewError, ColorParseError, ColorValueError
-from colorbrew.types import NameMatch
+from colorbrew.types import BlendMode, ColorVisionDeficiency, DistanceMethod, NameMatch
 
 __all__ = [
+    "BlendMode",
     "Color",
     "ColorBrewError",
     "ColorParseError",
     "ColorValueError",
+    "ColorVisionDeficiency",
+    "DistanceMethod",
     "NameMatch",
     "cmyk_to_rgb",
     "delta_e_76",

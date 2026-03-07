@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from colorbrew.types import BlendMode
+
 
 def _norm(v: int) -> float:
     """Normalize an 0-255 integer to 0.0-1.0."""
@@ -80,7 +82,7 @@ _MODES: dict[str, Callable[[float, float], float]] = {
 def blend(
     base: tuple[int, int, int],
     top: tuple[int, int, int],
-    mode: str = "multiply",
+    mode: BlendMode = "multiply",
 ) -> tuple[int, int, int]:
     """Apply a Photoshop-style blend mode to two RGB colors.
 
