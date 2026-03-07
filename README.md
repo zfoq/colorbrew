@@ -125,10 +125,13 @@ Color("#3498db").hsv                   # hex → HSV
 ### Reverse Name Lookup
 
 ```python
-match = Color("#3498db").closest_name
+match = Color("#3498db").closest_name()           # default: euclidean
 match.name       # "dodgerblue"
 match.distance   # 42.9418
 match.exact      # False
+
+# Use perceptual distance for better accuracy
+match = Color("#3498db").closest_name(method="ciede2000")
 ```
 
 ### Shade, Tint, Tone & Gradients
