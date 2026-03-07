@@ -10,24 +10,25 @@ from __future__ import annotations
 
 import math
 
-from colorbrew.conversion.gamma import SRGB_TO_XYZ, linearize
+from colorbrew.conversion.gamma import (
+    D65_XN,
+    D65_YN,
+    D65_ZN,
+    LAB_EPSILON,
+    LAB_KAPPA,
+    SRGB_TO_XYZ,
+    XYZ_TO_SRGB,
+    delinearize,
+    linearize,
+)
 from colorbrew.types import DistanceMethod
-
-# D65 illuminant reference white (2-degree observer)
-_XN = 0.95047
-_YN = 1.00000
-_ZN = 1.08883
-
-# CIE constants
-_EPSILON = 216 / 24389  # 0.008856...
-_KAPPA = 24389 / 27  # 903.3...
 
 
 def _lab_f(t: float) -> float:
     """CIE L*a*b* transfer function."""
-    if t > _EPSILON:
+    if t > LAB_EPSILON:
         return t ** (1.0 / 3.0)
-    return (_KAPPA * t + 16.0) / 116.0
+    return (LAB_KAPPA * t + 16.0) / 116.0
 
 
 def rgb_to_lab(r: int, g: int, b: int) -> tuple[float, float, float]:
@@ -52,15 +53,53 @@ def rgb_to_lab(r: int, g: int, b: int) -> tuple[float, float, float]:
     z = SRGB_TO_XYZ[2][0] * rl + SRGB_TO_XYZ[2][1] * gl + SRGB_TO_XYZ[2][2] * bl
 
     # XYZ -> L*a*b*
-    fx = _lab_f(x / _XN)
-    fy = _lab_f(y / _YN)
-    fz = _lab_f(z / _ZN)
+    fx = _lab_f(x / D65_XN)
+    fy = _lab_f(y / D65_YN)
+    fz = _lab_f(z / D65_ZN)
 
     l_star = 116.0 * fy - 16.0
     a_star = 500.0 * (fx - fy)
     b_star = 200.0 * (fy - fz)
 
     return (l_star, a_star, b_star)
+
+
+def lab_to_rgb(
+    ls: float, a: float, b: float
+) -> tuple[int, int, int]:
+    """Convert CIE L*a*b* (D65, 2-degree observer) to sRGB (0-255).
+
+    Args:
+        ls: L* lightness (0-100).
+        a: a* green-red axis (unbounded).
+        b: b* blue-yellow axis (unbounded).
+
+    Returns:
+        Tuple of (red, green, blue) integers in range 0-255.
+    """
+    # L*a*b* -> XYZ
+    fy = (ls + 16.0) / 116.0
+    fx = a / 500.0 + fy
+    fz = fy - b / 200.0
+
+    fx3 = fx ** 3
+    fz3 = fz ** 3
+
+    xr = fx3 if fx3 > LAB_EPSILON else (116.0 * fx - 16.0) / LAB_KAPPA
+    yr = fy ** 3 if ls > LAB_KAPPA * LAB_EPSILON else ls / LAB_KAPPA
+    zr = fz3 if fz3 > LAB_EPSILON else (116.0 * fz - 16.0) / LAB_KAPPA
+
+    x = xr * D65_XN
+    y = yr * D65_YN
+    z = zr * D65_ZN
+
+    # XYZ -> linear RGB
+    m = XYZ_TO_SRGB
+    rl = m[0][0] * x + m[0][1] * y + m[0][2] * z
+    gl = m[1][0] * x + m[1][1] * y + m[1][2] * z
+    bl = m[2][0] * x + m[2][1] * y + m[2][2] * z
+
+    return (delinearize(rl), delinearize(gl), delinearize(bl))
 
 
 def euclidean_rgb(

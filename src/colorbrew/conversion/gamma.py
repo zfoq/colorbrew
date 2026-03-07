@@ -45,3 +45,19 @@ SRGB_TO_XYZ = (
     (0.2126729, 0.7151522, 0.0721750),
     (0.0193339, 0.1191920, 0.9503041),
 )
+
+# Inverse: CIE XYZ to linear sRGB (D65 illuminant, 2-degree observer).
+XYZ_TO_SRGB = (
+    (3.2404542, -1.5371385, -0.4985314),
+    (-0.9692660, 1.8760108, 0.0415560),
+    (0.0556434, -0.2040259, 1.0572252),
+)
+
+# D65 illuminant reference white (2-degree observer).
+D65_XN = 0.95047
+D65_YN = 1.00000
+D65_ZN = 1.08883
+
+# CIE L*a*b* constants.
+LAB_EPSILON = 216 / 24389  # 0.008856...
+LAB_KAPPA = 24389 / 27  # 903.3...

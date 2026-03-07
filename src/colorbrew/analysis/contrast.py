@@ -6,6 +6,7 @@ the W3C Web Content Accessibility Guidelines (WCAG) 2.1.
 
 from __future__ import annotations
 
+from colorbrew.conversion.converters import hsl_to_rgb, rgb_to_hsl
 from colorbrew.conversion.gamma import linearize as _linearize
 
 
@@ -161,8 +162,6 @@ def find_accessible_color(
     Returns:
         An accessible RGB tuple close to *target*.
     """
-    from colorbrew.conversion.converters import hsl_to_rgb, rgb_to_hsl
-
     if level == "aaa":
         threshold = 4.5 if large else 7.0
     else:
