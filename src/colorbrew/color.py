@@ -172,7 +172,7 @@ class Color:
         lower = name.lower().strip()
         if lower not in NAMED_COLORS:
             raise ColorParseError(f"Unknown color name: {name!r}")
-        return cls(NAMED_COLORS[lower])
+        return _new(_conv.hex_to_rgb(NAMED_COLORS[lower]))
 
     @classmethod
     def from_tailwind(cls, name: str) -> Color:
@@ -190,7 +190,7 @@ class Color:
         lower = name.lower().strip()
         if lower not in TAILWIND_COLORS:
             raise ColorParseError(f"Unknown Tailwind color: {name!r}")
-        return cls(TAILWIND_COLORS[lower])
+        return _new(_conv.hex_to_rgb(TAILWIND_COLORS[lower]))
 
     @classmethod
     def from_material(cls, name: str) -> Color:
@@ -208,7 +208,7 @@ class Color:
         lower = name.lower().strip()
         if lower not in MATERIAL_COLORS:
             raise ColorParseError(f"Unknown Material Design color: {name!r}")
-        return cls(MATERIAL_COLORS[lower])
+        return _new(_conv.hex_to_rgb(MATERIAL_COLORS[lower]))
 
     @classmethod
     def random(cls) -> Color:
@@ -753,9 +753,7 @@ class Color:
 
     def __repr__(self) -> str:
         """Return a string representation like ``Color('#3498db')``."""
-        if self._alpha < 1.0:
-            return f"Color('{self.hex}')"
-        return f"Color('{_conv.rgb_to_hex(*self._rgb)}')"
+        return f"Color('{self.hex}')"
 
     def __str__(self) -> str:
         """Return the hex string like ``#3498db``."""
