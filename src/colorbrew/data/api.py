@@ -9,10 +9,12 @@ from importlib.metadata import version as _package_version
 from pathlib import Path
 from urllib.request import urlopen
 
-from colorbrew.data.material_colors import MATERIAL_COLORS
+from colorbrew.data.loader import (
+    MATERIAL_COLORS,
+    NAMED_COLORS,
+    TAILWIND_COLORS,
+)
 from colorbrew.data.models import Palette
-from colorbrew.data.named_colors import NAMED_COLORS
-from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 from colorbrew.exceptions import ColorValueError
 
 _PACKAGE_VERSION = _package_version("colorbrew")

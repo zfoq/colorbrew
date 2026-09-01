@@ -18,9 +18,11 @@ from colorbrew.analysis.delta_e import (
     rgb_to_lab,
 )
 from colorbrew.conversion.converters import hex_to_rgb
-from colorbrew.data.material_colors import MATERIAL_COLORS
-from colorbrew.data.named_colors import NAMED_COLORS
-from colorbrew.data.tailwind_colors import TAILWIND_COLORS
+from colorbrew.data.loader import (
+    MATERIAL_COLORS,
+    NAMED_COLORS,
+    TAILWIND_COLORS,
+)
 from colorbrew.types import DistanceMethod, NameMatch
 
 # Lazily built caches: palette id(dict) -> list of (name, hex, r, g, b)

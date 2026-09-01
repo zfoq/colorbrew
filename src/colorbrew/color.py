@@ -20,9 +20,11 @@ from colorbrew.conversion import converters as _conv
 from colorbrew.conversion import css_output as _css
 from colorbrew.conversion.parsing import parse_rgb_args, parse_string_with_alpha
 from colorbrew.data import get_palette as _get_palette
-from colorbrew.data.material_colors import MATERIAL_COLORS
-from colorbrew.data.named_colors import NAMED_COLORS
-from colorbrew.data.tailwind_colors import TAILWIND_COLORS
+from colorbrew.data.loader import (
+    MATERIAL_COLORS,
+    NAMED_COLORS,
+    TAILWIND_COLORS,
+)
 from colorbrew.exceptions import ColorParseError, ColorValueError
 from colorbrew.transform import blending as _blending
 from colorbrew.transform import manipulation as _manip

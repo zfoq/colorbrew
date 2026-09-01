@@ -2,16 +2,6 @@
 
 from __future__ import annotations
 
-import json
-from importlib import resources
-
-
-def _load() -> dict[str, str]:
-    return json.loads(
-        resources.files(__package__).joinpath("material_colors.json").read_text()
-    )
-
-
-MATERIAL_COLORS: dict[str, str] = _load()
+from colorbrew.data.loader import MATERIAL_COLORS
 
 __all__ = ["MATERIAL_COLORS"]

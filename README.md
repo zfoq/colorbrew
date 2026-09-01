@@ -271,8 +271,9 @@ Available palettes: 148 CSS named colors, 242 Tailwind CSS colors, 190 Material 
 
 ### Optional Palette API and Cache
 
-Bundled palette tables are packaged JSON resources loaded at import time, so the
-Python modules stay as thin compatibility loaders. Bundled data remains the
+All bundled palette tables live as packaged JSON resources loaded through a
+single loader module, so the per-palette Python modules stay as thin
+compatibility re-exports. Bundled data remains the
 default and keeps normal usage fully offline. Network access and disk cache are
 opt-in, and remote reads only happen when you pass `allow_network=True`:
 
