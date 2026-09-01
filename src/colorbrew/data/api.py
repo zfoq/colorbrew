@@ -21,8 +21,6 @@ _BUNDLED_PALETTES: dict[str, dict[str, str]] = {
     "material": MATERIAL_COLORS,
 }
 
-# ponytail: remote refresh is JSON-only for now; add source-specific parsers when
-# canonical upstream files need direct ingestion.
 _PALETTE_URLS: dict[str, str] = {}
 
 
