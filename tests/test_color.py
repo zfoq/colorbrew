@@ -294,6 +294,18 @@ class TestColorCssOutput:
         assert result == "hsla(0, 100%, 50%, 0.5)"
 
 
+    def test_css_rgb_modern(self):
+        """Return modern CSS rgb() strings with and without alpha."""
+        c = Color(52, 152, 219)
+        assert c.css_rgb_modern() == "rgb(52 152 219)"
+        assert c.with_alpha(0.8).css_rgb_modern() == "rgb(52 152 219 / 0.8)"
+
+    def test_css_hsl_modern(self):
+        """Return modern CSS hsl() strings with and without alpha."""
+        c = Color(52, 152, 219)
+        assert c.css_hsl_modern() == "hsl(204 70% 53%)"
+        assert c.with_alpha(0.8).css_hsl_modern() == "hsl(204 70% 53% / 0.8)"
+
 class TestColorClosestName:
     """Test closest_name method on Color."""
 
@@ -458,6 +470,14 @@ class TestColorGradient:
         assert result[-1] == end
 
 
+    def test_single_step_preserves_start_color_and_alpha(self):
+        """Single-step gradients return only the start color."""
+        start = Color("rgba(255, 0, 0, 0.3)")
+        end = Color("rgba(0, 0, 255, 0.9)")
+        result = start.gradient(end, 1)
+        assert result == [start]
+        assert result[0].alpha == 0.3
+
 class TestColorSimulateColorblind:
     """Test color blindness simulation via Color method."""
 
@@ -551,6 +571,15 @@ class TestColorClosestMaterial:
         assert match.distance > 0
         assert match.exact is False
 
+
+class TestColorFromLab:
+    """Test Color.from_lab class method."""
+
+    def test_round_trips_known_color(self):
+        """Creating a color from its Lab value stays very close."""
+        original = Color("#3498db")
+        recreated = Color.from_lab(*original.lab)
+        assert recreated.distance(original, method="cie76") < 1.0
 
 class TestColorLab:
     """Test Color.lab property."""
