@@ -244,6 +244,38 @@ Output:
 --brand-950: #091c2c;
 ```
 
+### The `Palette` class
+
+A `Palette` is an ordered set (and sequence) of `Color` objects. Build one from
+`Color` instances, hex strings, CSS named colors, or RGB tuples:
+
+```python
+from colorbrew import Color, Palette
+
+palette = Palette([Color("#3498db"), "#e74c3c", "gold", (0, 128, 0)])
+palette.colors           # (Color('#3498db'), Color('#e74c3c'), Color('#ffd700'), Color('#008000'))
+palette.hexes            # ['#3498db', '#e74c3c', '#ffd700', '#008000']
+palette[0]               # Color('#3498db')
+len(palette)             # 4
+Color("gold") in palette # True
+```
+
+Palette generation methods that live on `Color` are also available on a
+`Palette`, operating on each member:
+
+```python
+palette.gradient(steps=5)           # gradient stitched between consecutive colors
+palette.complementary()             # complement of each color
+palette.analogous()                 # analogous sets for each color
+palette.scale()[500]                # Palette of 500-step shades
+```
+
+Palettes also support set-style union:
+
+```python
+Palette(["red", "green"]) | Palette(["green", "blue"])
+```
+
 ### Reverse Name Lookup
 
 Find the closest named color from built-in palettes:
