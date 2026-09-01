@@ -266,12 +266,13 @@ Color("#338fd8").nearest_palette(palette)  # NameMatch("brand", ...)
 Color("#3498db").closest_name(method="ciede2000")
 ```
 
-Available palettes: 148 CSS named colors, 264 Tailwind CSS colors, 210 Material Design colors.
+Available palettes: 148 CSS named colors, 242 Tailwind CSS colors, 190 Material Design colors.
 
 ### Optional Palette API and Cache
 
 Bundled palette tables stay the default and keep normal usage fully offline.
-Network access and disk cache are opt-in:
+Network access and disk cache are opt-in, and remote reads only happen when you pass
+`allow_network=True`:
 
 ```python
 from colorbrew import get_palette, list_palettes, refresh_palette

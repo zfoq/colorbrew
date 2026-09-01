@@ -38,6 +38,12 @@ class TestPaletteApi:
         palette = get_palette("tailwind")
         assert palette["sky-500"] == "#0ea5e9"
 
+    def test_get_palette_returns_a_copy(self):
+        """Bundled lookups should not expose the module constant by reference."""
+        palette = get_palette("tailwind")
+        palette["sky-500"] = "#112233"
+        assert get_palette("tailwind")["sky-500"] == "#0ea5e9"
+
     def test_get_palette_reads_cache_when_enabled(self, tmp_path: Path):
         """Read a cached palette only when cache access is enabled."""
         cache_dir = tmp_path / "cache"
@@ -60,6 +66,11 @@ class TestPaletteApi:
         with pytest.raises(ColorValueError, match="network access is disabled"):
             get_palette("tailwind", source="api")
 
+    def test_get_palette_rejects_unknown_source(self):
+        """Reject invalid source names."""
+        with pytest.raises(ColorValueError, match="Unknown palette source"):
+            get_palette("tailwind", source="elsewhere")
+
     def test_refresh_palette_fetches_and_caches(self, monkeypatch, tmp_path: Path):
         """Fetch remote JSON and write it to the optional cache."""
         def fake_urlopen(url: str, timeout: float):
@@ -78,6 +89,11 @@ class TestPaletteApi:
         assert json.loads((cache_dir / "tailwind.json").read_text()) == {
             "brand-500": "#112233"
         }
+
+    def test_refresh_palette_rejects_empty_url(self, tmp_path: Path):
+        """Reject blank refresh URLs."""
+        with pytest.raises(ColorValueError, match="URL must not be empty"):
+            refresh_palette("tailwind", url="   ", cache_dir=tmp_path)
 
     def test_get_palette_auto_falls_back_to_cache_then_bundled(
         self, monkeypatch, tmp_path: Path

@@ -76,6 +76,20 @@ def list_palettes() -> tuple[str, ...]:
     return tuple(_BUNDLED_PALETTES)
 
 
+def _validate_palette_name(name: str) -> str:
+    palette_name = name.strip().lower()
+    if palette_name not in _BUNDLED_PALETTES:
+        raise ColorValueError(f"Unknown palette family: {name!r}")
+    return palette_name
+
+
+def _validate_source(source: str) -> str:
+    source_name = source.strip().lower()
+    if source_name not in {"bundled", "cache", "api", "auto"}:
+        raise ColorValueError(f"Unknown palette source: {source!r}")
+    return source_name
+
+
 def get_palette(
     name: str,
     *,
@@ -103,19 +117,18 @@ def get_palette(
     Raises:
         ColorValueError: If the palette name/source is unknown or access is disabled.
     """
-    palette_name = name.strip().lower()
-    if palette_name not in _BUNDLED_PALETTES:
-        raise ColorValueError(f"Unknown palette family: {name!r}")
+    palette_name = _validate_palette_name(name)
+    source_name = _validate_source(source)
 
-    if source == "bundled":
+    if source_name == "bundled":
         return dict(_BUNDLED_PALETTES[palette_name])
 
-    if source == "cache":
+    if source_name == "cache":
         if not allow_cache:
             raise ColorValueError("Palette cache access is disabled.")
         return _load_cached_palette(palette_name, cache_dir)
 
-    if source == "api":
+    if source_name == "api":
         if not allow_network:
             raise ColorValueError("Palette network access is disabled.")
         palette_url = url or _PALETTE_URLS.get(palette_name)
@@ -126,7 +139,7 @@ def get_palette(
             _write_cached_palette(palette_name, palette, cache_dir)
         return palette
 
-    if source == "auto":
+    if source_name == "auto":
         if allow_network:
             try:
                 return get_palette(
@@ -167,9 +180,9 @@ def refresh_palette(
     timeout: float = 5.0,
 ) -> dict[str, str]:
     """Fetch a palette from a JSON API and optionally cache it."""
-    palette_name = name.strip().lower()
-    if palette_name not in _BUNDLED_PALETTES:
-        raise ColorValueError(f"Unknown palette family: {name!r}")
+    palette_name = _validate_palette_name(name)
+    if not url.strip():
+        raise ColorValueError("Palette URL must not be empty.")
     palette = _fetch_palette(url, timeout)
     if write_cache:
         _write_cached_palette(palette_name, palette, cache_dir)
