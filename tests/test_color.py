@@ -339,6 +339,18 @@ class TestColorAccessibility:
         """Black/white passes AAA."""
         assert Color(0, 0, 0).meets_aaa(Color(255, 255, 255)) is True
 
+    def test_adjust_contrast(self):
+        """Adjust a target color until it meets AA."""
+        bg = Color(255, 255, 255)
+        adjusted = bg.adjust_contrast(Color(200, 200, 200))
+        assert bg.meets_aa(adjusted) is True
+
+    def test_adjust_contrast_large(self):
+        """Allow the lower large-text threshold when requested."""
+        bg = Color(255, 255, 255)
+        adjusted = bg.adjust_contrast(Color(140, 140, 140), large=True)
+        assert bg.meets_aa(adjusted, large=True) is True
+
 
 class TestColorTemperature:
     """Test temperature methods on Color."""

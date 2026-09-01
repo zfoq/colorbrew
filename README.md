@@ -303,6 +303,9 @@ accessible.hex                   # darker shade that passes 4.5:1
 # Large text uses the lower WCAG threshold automatically
 accessible_large = bg.find_accessible_color(brand, level="aa", large=True)
 
+# Alias with a clearer intent-focused name
+accessible = bg.adjust_contrast(brand)
+
 # AAA level
 accessible = bg.find_accessible_color(brand, level="aaa")
 ```

@@ -748,6 +748,24 @@ class Color:
             _contrast.find_accessible_color(self._rgb, target._rgb, level, large)
         )
 
+    def adjust_contrast(
+        self,
+        target: Color,
+        level: Literal["aa", "aaa"] = "aa",
+        large: bool = False,
+    ) -> Color:
+        """Return a contrast-compliant version of *target* against this color.
+
+        Args:
+            target: The desired foreground color.
+            level: ``"aa"`` or ``"aaa"``.
+            large: True for large text (lower thresholds).
+
+        Returns:
+            An accessible Color close to *target*.
+        """
+        return self.find_accessible_color(target, level=level, large=large)
+
     # --- Methods: color blindness simulation ---
 
     def simulate_colorblind(self, deficiency: ColorVisionDeficiency) -> Color:
