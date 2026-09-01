@@ -30,6 +30,13 @@ Changelog = "https://github.com/zfoq/colorbrew/releases"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+exclude = [
+    "/.vscode",
+    "/.vscode/**",
+    "/.gitmodules",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/colorbrew"]
 
