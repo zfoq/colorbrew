@@ -751,6 +751,26 @@ class Color:
         """
         return _contrast.wcag_report(self._rgb, other._rgb)
 
+    def is_accessible_on(
+        self,
+        other: Color,
+        level: Literal["aa", "aaa"] = "aa",
+        large: bool = False,
+    ) -> bool:
+        """Check if this color is accessible on another color.
+
+        Args:
+            other: The background or comparison color.
+            level: ``"aa"`` or ``"aaa"``.
+            large: True for large text (lower thresholds).
+
+        Returns:
+            True if the pair meets the requested WCAG threshold.
+        """
+        if level == "aaa":
+            return self.meets_aaa(other, large=large)
+        return self.meets_aa(other, large=large)
+
     def suggest_text_color(self) -> Color:
         """Suggest black or white text for maximum readability on this color.
 
