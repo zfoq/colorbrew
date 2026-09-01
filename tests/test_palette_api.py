@@ -71,6 +71,26 @@ class TestPaletteApi:
         assert isinstance(len(palette), int)
         assert "sky-500" in dict(palette)
 
+    def test_palette_mapping_uses_case_insensitive_key_semantics(self):
+        """Subscript, membership, and get agree on normalized keys."""
+        palette = get_palette("tailwind")
+        assert palette[" SKY-500 "] == "#0ea5e9"
+        assert palette.get("SKY-500") == "#0ea5e9"
+        assert "Sky-500" in palette
+        assert "missing" not in palette
+        assert palette.get("missing") is None
+        assert palette.get("missing", "#000000") == "#000000"
+        with pytest.raises(KeyError):
+            palette["missing"]
+
+    def test_palette_hash_is_explicit_and_stable(self):
+        """Palette exposes a working content hash, not a broken dataclass default."""
+        palette1 = get_palette("tailwind")
+        palette2 = get_palette("tailwind")
+        assert hash(palette1) == hash(palette2)
+        assert isinstance(hash(palette1), int)
+        assert len({palette1, palette2}) == 1
+
     def test_get_palette_returns_a_copy(self):
         """Bundled lookups should not expose the module constant by reference."""
         palette1 = get_palette("tailwind")

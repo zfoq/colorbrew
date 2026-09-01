@@ -21,8 +21,12 @@ class Palette(Mapping[str, str]):
     entries: dict[str, str]
     source: str = "bundled"
 
+    @staticmethod
+    def _normalize_key(name: str) -> str:
+        return name.lower().strip()
+
     def __getitem__(self, key: str) -> str:
-        return self.entries[key]
+        return self.entries[self._normalize_key(key)]
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.entries)
@@ -30,9 +34,14 @@ class Palette(Mapping[str, str]):
     def __len__(self) -> int:
         return len(self.entries)
 
+    def __hash__(self) -> int:
+        return hash(
+            (self.family, self.version, self.source, frozenset(self.entries.items()))
+        )
+
     def get(self, name: str, default: str | None = None) -> str | None:
         """Return an entry by name, with case-insensitive key lookup."""
-        return self.entries.get(name.lower().strip(), default)
+        return self.entries.get(self._normalize_key(name), default)
 
     def as_dict(self) -> dict[str, str]:
         """Return a shallow copy of the entries as a plain dict."""
