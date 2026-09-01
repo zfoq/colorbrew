@@ -1,10 +1,24 @@
 """Tests for colorbrew.naming — reverse color name lookup across palettes."""
 
 from colorbrew.analysis.naming import (
+    find_closest_in_palette,
     find_closest_material,
     find_closest_name,
     find_closest_tailwind,
 )
+
+
+class TestFindClosestInPalette:
+    """Test find_closest_in_palette lookup."""
+
+    def test_exact_match(self):
+        """Find an exact match in a custom palette."""
+        palette = {"brand": "#3498db", "accent": "#e74c3c"}
+        match = find_closest_in_palette(0x34, 0x98, 0xDB, palette)
+        assert match.name == "brand"
+        assert match.hex == "#3498db"
+        assert match.distance == 0.0
+        assert match.exact is True
 
 
 class TestFindClosestName:

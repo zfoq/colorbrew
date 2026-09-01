@@ -106,6 +106,29 @@ def _find_closest(
     )
 
 
+def find_closest_in_palette(
+    r: int,
+    g: int,
+    b: int,
+    palette: dict[str, str],
+    method: DistanceMethod = "euclidean",
+) -> NameMatch:
+    """Find the closest color in a user-provided palette.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+        palette: Mapping of color names to hex strings.
+        method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+            or ``"ciede2000"``.
+
+    Returns:
+        A NameMatch with the closest palette color.
+    """
+    return _find_closest(r, g, b, palette, method)
+
+
 def find_closest_name(
     r: int, g: int, b: int, method: DistanceMethod = "euclidean"
 ) -> NameMatch:

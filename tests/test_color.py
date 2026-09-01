@@ -658,6 +658,22 @@ class TestColorLab:
         assert 0 <= ls <= 100
 
 
+class TestColorNearestPalette:
+    """Test custom palette lookup on Color."""
+
+    def test_nearest_palette(self):
+        """Find the closest entry in a custom palette."""
+        palette = {"brand": "#3498db", "accent": "#e74c3c"}
+        match = Color(50, 150, 220).nearest_palette(palette)
+        assert match.name == "brand"
+        assert match.exact is False
+
+    def test_nearest_palette_rejects_empty_palette(self):
+        """Reject empty custom palettes."""
+        with pytest.raises(ColorValueError, match="Palette must not be empty"):
+            Color(50, 150, 220).nearest_palette({})
+
+
 class TestColorDistance:
     """Test Color.distance method."""
 
