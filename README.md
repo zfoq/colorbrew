@@ -270,10 +270,12 @@ Available palettes: 148 CSS named colors, 264 Tailwind CSS colors, 210 Material 
 bg = Color("#1a1a2e")
 text = Color("#e0e0e0")
 
-bg.contrast(text)              # 12.72 (contrast ratio 1:1 to 21:1)
-bg.meets_aa(text)              # True  (≥ 4.5:1)
-bg.meets_aaa(text)             # True  (≥ 7:1)
-bg.meets_aa(text, large=True)  # True  (large text: ≥ 3:1)
+bg.contrast(text)                  # 12.72 (contrast ratio 1:1 to 21:1)
+bg.meets_aa(text)                  # True  (≥ 4.5:1)
+bg.meets_aaa(text)                 # True  (≥ 7:1)
+bg.meets_aa(text, large=True)      # True  (large text: ≥ 3:1)
+text.is_accessible_on(bg)          # True  (same check, text-first)
+text.is_accessible_on(bg, level="aaa")  # True
 
 report = bg.wcag_report(text)
 report.ratio                   # 12.72

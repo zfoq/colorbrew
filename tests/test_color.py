@@ -339,6 +339,19 @@ class TestColorAccessibility:
         """Black/white passes AAA."""
         assert Color(0, 0, 0).meets_aaa(Color(255, 255, 255)) is True
 
+    def test_is_accessible_on_defaults_to_aa(self):
+        """Use AA as the default WCAG level."""
+        text = Color(140, 140, 140)
+        bg = Color(255, 255, 255)
+        assert text.is_accessible_on(bg) is False
+        assert text.is_accessible_on(bg, large=True) is True
+
+    def test_is_accessible_on_supports_aaa(self):
+        """Support AAA checks through the level argument."""
+        text = Color(0, 0, 0)
+        bg = Color(255, 255, 255)
+        assert text.is_accessible_on(bg, level="aaa") is True
+
     def test_wcag_report(self):
         """Return a WCAG summary report for a color pair."""
         report = Color(255, 255, 255).wcag_report(Color(140, 140, 140))
