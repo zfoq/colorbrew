@@ -142,6 +142,18 @@ class TestColorFromBundledPaletteSources:
             cache_dir=cache_dir,
         ) == Color("#112233")
 
+    def test_from_material_uses_cache_when_enabled(self, tmp_path):
+        """Load Material colors from the optional cache."""
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir()
+        (cache_dir / "material.json").write_text('{"brand-500": "#112233"}\n')
+        assert Color.from_material(
+            "brand-500",
+            source="cache",
+            allow_cache=True,
+            cache_dir=cache_dir,
+        ) == Color("#112233")
+
     def test_from_material_rejects_disabled_network(self):
         """Reject API reads when network access is not enabled."""
         with pytest.raises(ColorValueError, match="network access is disabled"):
@@ -314,7 +326,6 @@ class TestColorCssOutput:
         result = Color(255, 0, 0).css_hsla(0.5)
         assert result == "hsla(0, 100%, 50%, 0.5)"
 
-
     def test_css_rgb_modern(self):
         """Return modern CSS rgb() strings with and without alpha."""
         c = Color(52, 152, 219)
@@ -326,6 +337,7 @@ class TestColorCssOutput:
         c = Color(52, 152, 219)
         assert c.css_hsl_modern() == "hsl(204 70% 53%)"
         assert c.with_alpha(0.8).css_hsl_modern() == "hsl(204 70% 53% / 0.8)"
+
 
 class TestColorClosestName:
     """Test closest_name method on Color."""
@@ -351,6 +363,28 @@ class TestColorPaletteLookups:
             cache_dir=cache_dir,
         )
         assert match.name == "brand-500"
+        assert match.exact is True
+
+    def test_closest_material_uses_cache_when_enabled(self, tmp_path):
+        """Load cached Material palette data for lookup."""
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir()
+        (cache_dir / "material.json").write_text('{"brand-500": "#112233"}\n')
+        match = Color("#112233").closest_material(
+            source="cache",
+            allow_cache=True,
+            cache_dir=cache_dir,
+        )
+        assert match.name == "brand-500"
+        assert match.exact is True
+
+    def test_nearest_palette_accepts_palette_object(self):
+        """nearest_palette accepts a Palette in addition to a plain dict."""
+        from colorbrew.data import get_palette
+
+        palette = get_palette("tailwind")
+        match = Color("#0ea5e9").nearest_palette(palette)
+        assert match.name == "sky-500"
         assert match.exact is True
 
 
@@ -546,7 +580,6 @@ class TestColorGradient:
         assert result[0] == start
         assert result[-1] == end
 
-
     def test_single_step_preserves_start_color_and_alpha(self):
         """Single-step gradients return only the start color."""
         start = Color("rgba(255, 0, 0, 0.3)")
@@ -554,6 +587,7 @@ class TestColorGradient:
         result = start.gradient(end, 1)
         assert result == [start]
         assert result[0].alpha == 0.3
+
 
 class TestColorSimulateColorblind:
     """Test color blindness simulation via Color method."""
@@ -616,6 +650,7 @@ class TestColorFromMaterial:
         with pytest.raises(ColorParseError):
             Color.from_material("nonexistent-500")
 
+
 class TestColorFromKelvin:
     """Test Color.from_kelvin class method."""
 
@@ -670,6 +705,7 @@ class TestColorFromLab:
         original = Color("#3498db")
         recreated = Color.from_lab(*original.lab)
         assert recreated.distance(original, method="cie76") < 1.0
+
 
 class TestColorLab:
     """Test Color.lab property."""

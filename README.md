@@ -275,10 +275,21 @@ Network access and disk cache are opt-in, and remote reads only happen when you 
 `allow_network=True`:
 
 ```python
-from colorbrew import get_palette, list_palettes, refresh_palette
+from colorbrew import get_palette, get_palette_entries, list_palettes, refresh_palette
 
 list_palettes()                     # ('named', 'tailwind', 'material')
-get_palette("tailwind")            # bundled data, no network, no cache
+palette = get_palette("tailwind")   # Palette object with metadata
+palette.family                      # 'tailwind'
+palette.source                      # 'bundled'
+palette.entries["sky-500"]         # '#0ea5e9'
+
+# Palette behaves like a read-only mapping, so existing subscript/iteration code works
+palette["sky-500"]                 # '#0ea5e9'
+"sky-500" in palette               # True
+
+# Backward-compatibility helper for the old dict[str, str] return type
+get_palette_entries("tailwind")["sky-500"]  # '#0ea5e9'
+
 get_palette("tailwind", source="auto", allow_cache=True)  # cache -> bundled
 
 # Opt into remote JSON + optional cache write
@@ -291,6 +302,10 @@ get_palette(
     url="https://example.com/tailwind.json",
 )
 ```
+
+`get_palette` returns a `Palette` object with `family`, `version`, `source`, and
+`entries` metadata. `get_palette_entries` returns the same data as a plain
+`dict[str, str]` for code that predates the `Palette` type.
 
 `source="auto"` tries API first only when `allow_network=True`, then cache only when
 `allow_cache=True`, and finally falls back to the bundled data.

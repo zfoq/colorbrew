@@ -20,6 +20,15 @@ class TestFindClosestInPalette:
         assert match.distance == 0.0
         assert match.exact is True
 
+    def test_accepts_palette_object(self):
+        """Find an exact match when a Palette object is passed."""
+        from colorbrew.data import get_palette
+
+        palette = get_palette("tailwind")
+        match = find_closest_in_palette(0x0E, 0xA5, 0xE9, palette)
+        assert match.name == "sky-500"
+        assert match.exact is True
+
 
 class TestFindClosestName:
     """Test find_closest_name lookup."""

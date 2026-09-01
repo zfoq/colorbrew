@@ -9,6 +9,8 @@ repeated hex-to-RGB and RGB-to-Lab conversions.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from colorbrew.analysis.delta_e import (
     delta_e_76,
     delta_e_2000,
@@ -28,7 +30,7 @@ _lab_cache: dict[int, list[tuple[str, str, float, float, float]]] = {}
 
 
 def _get_rgb_entries(
-    palette: dict[str, str],
+    palette: Mapping[str, str],
 ) -> list[tuple[str, str, int, int, int]]:
     """Return cached list of (name, hex, r, g, b) for a palette."""
     key = id(palette)
@@ -42,7 +44,7 @@ def _get_rgb_entries(
 
 
 def _get_lab_entries(
-    palette: dict[str, str],
+    palette: Mapping[str, str],
 ) -> list[tuple[str, str, float, float, float]]:
     """Return cached list of (name, hex, L*, a*, b*) for a palette."""
     key = id(palette)
@@ -56,7 +58,10 @@ def _get_lab_entries(
 
 
 def _find_closest(
-    r: int, g: int, b: int, palette: dict[str, str],
+    r: int,
+    g: int,
+    b: int,
+    palette: Mapping[str, str],
     method: DistanceMethod = "euclidean",
 ) -> NameMatch:
     """Find the palette color closest to the given RGB value.
@@ -65,7 +70,7 @@ def _find_closest(
         r: Red channel (0-255).
         g: Green channel (0-255).
         b: Blue channel (0-255).
-        palette: Mapping of color names to hex strings.
+        palette: Mapping of color names to hex strings (or a ``Palette``).
         method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
             or ``"ciede2000"``.
 
@@ -110,7 +115,7 @@ def find_closest_in_palette(
     r: int,
     g: int,
     b: int,
-    palette: dict[str, str],
+    palette: Mapping[str, str],
     method: DistanceMethod = "euclidean",
 ) -> NameMatch:
     """Find the closest color in a user-provided palette.
@@ -119,7 +124,7 @@ def find_closest_in_palette(
         r: Red channel (0-255).
         g: Green channel (0-255).
         b: Blue channel (0-255).
-        palette: Mapping of color names to hex strings.
+        palette: Mapping of color names to hex strings (or a ``Palette``).
         method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
             or ``"ciede2000"``.
 

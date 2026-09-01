@@ -5,13 +5,17 @@ from __future__ import annotations
 import json
 import re
 import tempfile
+from importlib.metadata import version as _package_version
 from pathlib import Path
 from urllib.request import urlopen
 
 from colorbrew.data.material_colors import MATERIAL_COLORS
+from colorbrew.data.models import Palette
 from colorbrew.data.named_colors import NAMED_COLORS
 from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 from colorbrew.exceptions import ColorValueError
+
+_PACKAGE_VERSION = _package_version("colorbrew")
 
 _HEX_RE = re.compile(r"^#[0-9a-f]{6}$")
 
@@ -25,7 +29,11 @@ _PALETTE_URLS: dict[str, str] = {}
 
 
 def _cache_file(name: str, cache_dir: str | Path | None) -> Path:
-    base = Path(cache_dir) if cache_dir is not None else Path(tempfile.gettempdir()) / "colorbrew-palettes"
+    base = (
+        Path(cache_dir)
+        if cache_dir is not None
+        else Path(tempfile.gettempdir()) / "colorbrew-palettes"
+    )
     return base / f"{name}.json"
 
 
@@ -97,7 +105,7 @@ def get_palette(
     cache_dir: str | Path | None = None,
     url: str | None = None,
     timeout: float = 5.0,
-) -> dict[str, str]:
+) -> Palette:
     """Load a palette from bundled data, cache, or an opt-in URL.
 
     Args:
@@ -110,7 +118,8 @@ def get_palette(
         timeout: Network timeout in seconds.
 
     Returns:
-        A normalized ``dict[str, str]`` palette.
+        A :class:`Palette` with ``family``, ``version``, ``source``, and
+        ``entries`` metadata.
 
     Raises:
         ColorValueError: If the palette name/source is unknown or access is disabled.
@@ -119,23 +128,40 @@ def get_palette(
     source_name = _validate_source(source)
 
     if source_name == "bundled":
-        return dict(_BUNDLED_PALETTES[palette_name])
+        return Palette(
+            family=palette_name,
+            version=_PACKAGE_VERSION,
+            source="bundled",
+            entries=dict(_BUNDLED_PALETTES[palette_name]),
+        )
 
     if source_name == "cache":
         if not allow_cache:
             raise ColorValueError("Palette cache access is disabled.")
-        return _load_cached_palette(palette_name, cache_dir)
+        return Palette(
+            family=palette_name,
+            version="upstream",
+            source="cache",
+            entries=_load_cached_palette(palette_name, cache_dir),
+        )
 
     if source_name == "api":
         if not allow_network:
             raise ColorValueError("Palette network access is disabled.")
         palette_url = url or _PALETTE_URLS.get(palette_name)
         if palette_url is None:
-            raise ColorValueError(f"No remote source configured for palette: {palette_name}")
-        palette = _fetch_palette(palette_url, timeout)
+            raise ColorValueError(
+                f"No remote source configured for palette: {palette_name}"
+            )
+        entries = _fetch_palette(palette_url, timeout)
         if allow_cache:
-            _write_cached_palette(palette_name, palette, cache_dir)
-        return palette
+            _write_cached_palette(palette_name, entries, cache_dir)
+        return Palette(
+            family=palette_name,
+            version="upstream",
+            source="api",
+            entries=entries,
+        )
 
     if source_name == "auto":
         if allow_network:
@@ -169,6 +195,32 @@ def get_palette(
     raise ColorValueError(f"Unknown palette source: {source!r}")
 
 
+def get_palette_entries(
+    name: str,
+    *,
+    source: str = "bundled",
+    allow_network: bool = False,
+    allow_cache: bool = False,
+    cache_dir: str | Path | None = None,
+    url: str | None = None,
+    timeout: float = 5.0,
+) -> dict[str, str]:
+    """Load a palette and return its entries as a plain dict.
+
+    This helper preserves the pre-0.10.0 ``get_palette`` return type for
+    callers that need a ``dict[str, str]`` instead of a :class:`Palette`.
+    """
+    return get_palette(
+        name,
+        source=source,
+        allow_network=allow_network,
+        allow_cache=allow_cache,
+        cache_dir=cache_dir,
+        url=url,
+        timeout=timeout,
+    ).as_dict()
+
+
 def refresh_palette(
     name: str,
     *,
@@ -176,12 +228,17 @@ def refresh_palette(
     cache_dir: str | Path | None = None,
     write_cache: bool = True,
     timeout: float = 5.0,
-) -> dict[str, str]:
+) -> Palette:
     """Fetch a palette from a JSON API and optionally cache it."""
     palette_name = _validate_palette_name(name)
     if not url.strip():
         raise ColorValueError("Palette URL must not be empty.")
-    palette = _fetch_palette(url, timeout)
+    entries = _fetch_palette(url, timeout)
     if write_cache:
-        _write_cached_palette(palette_name, palette, cache_dir)
-    return palette
+        _write_cached_palette(palette_name, entries, cache_dir)
+    return Palette(
+        family=palette_name,
+        version="upstream",
+        source="api",
+        entries=entries,
+    )

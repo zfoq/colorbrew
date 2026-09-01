@@ -8,7 +8,13 @@ from urllib.error import URLError
 
 import pytest
 
-from colorbrew.data import get_palette, list_palettes, refresh_palette
+from colorbrew.data import (
+    Palette,
+    get_palette,
+    get_palette_entries,
+    list_palettes,
+    refresh_palette,
+)
 from colorbrew.exceptions import ColorValueError
 
 
@@ -38,11 +44,40 @@ class TestPaletteApi:
         palette = get_palette("tailwind")
         assert palette["sky-500"] == "#0ea5e9"
 
+    def test_get_palette_returns_palette_object(self):
+        """``get_palette`` returns a Palette instance."""
+        palette = get_palette("tailwind")
+        assert isinstance(palette, Palette)
+
+    def test_get_palette_has_family_version_source_entries(self):
+        """Palette exposes family, version, source, and entries."""
+        palette = get_palette("tailwind")
+        assert palette.family == "tailwind"
+        assert palette.source == "bundled"
+        assert isinstance(palette.version, str)
+        assert palette.entries["sky-500"] == "#0ea5e9"
+
+    def test_get_palette_entries_returns_plain_dict(self):
+        """Compatibility helper returns old dict entries."""
+        entries = get_palette_entries("tailwind")
+        assert isinstance(entries, dict)
+        assert entries["sky-500"] == "#0ea5e9"
+
+    def test_get_palette_acts_like_a_mapping(self):
+        """Palette supports subscript, membership, and iteration."""
+        palette = get_palette("tailwind")
+        assert "sky-500" in palette
+        assert palette["sky-500"] == "#0ea5e9"
+        assert isinstance(len(palette), int)
+        assert "sky-500" in dict(palette)
+
     def test_get_palette_returns_a_copy(self):
         """Bundled lookups should not expose the module constant by reference."""
-        palette = get_palette("tailwind")
-        palette["sky-500"] = "#112233"
-        assert get_palette("tailwind")["sky-500"] == "#0ea5e9"
+        palette1 = get_palette("tailwind")
+        palette2 = get_palette("tailwind")
+        assert palette1.entries is not palette2.entries
+        palette1.entries["sky-500"] = "#112233"
+        assert palette2.entries["sky-500"] == "#0ea5e9"
 
     def test_get_palette_reads_cache_when_enabled(self, tmp_path: Path):
         """Read a cached palette only when cache access is enabled."""
@@ -54,7 +89,7 @@ class TestPaletteApi:
             source="cache",
             allow_cache=True,
             cache_dir=cache_dir,
-        ) == {"brand-500": "#112233"}
+        ).entries == {"brand-500": "#112233"}
 
     def test_get_palette_rejects_disabled_cache(self, tmp_path: Path):
         """Reject cache reads when cache access is disabled."""
@@ -73,6 +108,7 @@ class TestPaletteApi:
 
     def test_refresh_palette_fetches_and_caches(self, monkeypatch, tmp_path: Path):
         """Fetch remote JSON and write it to the optional cache."""
+
         def fake_urlopen(url: str, timeout: float):
             assert url == "https://example.com/tailwind.json"
             assert timeout == 5.0
@@ -85,7 +121,8 @@ class TestPaletteApi:
             url="https://example.com/tailwind.json",
             cache_dir=cache_dir,
         )
-        assert palette == {"brand-500": "#112233"}
+        assert isinstance(palette, Palette)
+        assert palette.entries == {"brand-500": "#112233"}
         assert json.loads((cache_dir / "tailwind.json").read_text()) == {
             "brand-500": "#112233"
         }
@@ -114,11 +151,14 @@ class TestPaletteApi:
             allow_cache=True,
             cache_dir=cache_dir,
             url="https://example.com/tailwind.json",
-        ) == {"brand-500": "#112233"}
-        assert get_palette(
-            "tailwind",
-            source="auto",
-            allow_network=True,
-            allow_cache=False,
-            url="https://example.com/tailwind.json",
-        )["sky-500"] == "#0ea5e9"
+        ).entries == {"brand-500": "#112233"}
+        assert (
+            get_palette(
+                "tailwind",
+                source="auto",
+                allow_network=True,
+                allow_cache=False,
+                url="https://example.com/tailwind.json",
+            )["sky-500"]
+            == "#0ea5e9"
+        )

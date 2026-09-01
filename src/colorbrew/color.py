@@ -8,7 +8,7 @@ methods return new ``Color`` instances; nothing is mutated.
 from __future__ import annotations
 
 import random
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from typing import Literal, overload
 
 from colorbrew.analysis import colorblind as _cb
@@ -90,9 +90,7 @@ class Color:
             self._rgb = parse_rgb_args(r, g, b)  # type: ignore[arg-type]
             self._alpha = 1.0
         else:
-            raise ColorParseError(
-                f"Color() takes 1 or 3 arguments, got {len(args)}."
-            )
+            raise ColorParseError(f"Color() takes 1 or 3 arguments, got {len(args)}.")
 
     # --- Class methods / alternate constructors ---
 
@@ -225,7 +223,10 @@ class Color:
         """
         palette = (
             TAILWIND_COLORS
-            if source == "bundled" and not allow_network and not allow_cache and url is None
+            if source == "bundled"
+            and not allow_network
+            and not allow_cache
+            and url is None
             else _get_palette(
                 "tailwind",
                 source=source,
@@ -270,7 +271,10 @@ class Color:
         """
         palette = (
             MATERIAL_COLORS
-            if source == "bundled" and not allow_network and not allow_cache and url is None
+            if source == "bundled"
+            and not allow_network
+            and not allow_cache
+            and url is None
             else _get_palette(
                 "material",
                 source=source,
@@ -309,11 +313,13 @@ class Color:
         Returns:
             A new Color with random RGB values.
         """
-        return _new((
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255),
-        ))
+        return _new(
+            (
+                random.randint(0, 255),
+                random.randint(0, 255),
+                random.randint(0, 255),
+            )
+        )
 
     # --- Properties: channel access ---
 
@@ -511,7 +517,12 @@ class Color:
         Returns:
             A NameMatch with the closest Tailwind color name.
         """
-        if source == "bundled" and not allow_network and not allow_cache and url is None:
+        if (
+            source == "bundled"
+            and not allow_network
+            and not allow_cache
+            and url is None
+        ):
             return _naming.find_closest_tailwind(*self._rgb, method)
         return _naming.find_closest_in_palette(
             *self._rgb,
@@ -550,7 +561,12 @@ class Color:
         Returns:
             A NameMatch with the closest Material Design color name.
         """
-        if source == "bundled" and not allow_network and not allow_cache and url is None:
+        if (
+            source == "bundled"
+            and not allow_network
+            and not allow_cache
+            and url is None
+        ):
             return _naming.find_closest_material(*self._rgb, method)
         return _naming.find_closest_in_palette(
             *self._rgb,
@@ -567,13 +583,14 @@ class Color:
 
     def nearest_palette(
         self,
-        palette: dict[str, str],
+        palette: Mapping[str, str],
         method: DistanceMethod = "euclidean",
     ) -> NameMatch:
         """Find the closest color in a custom palette.
 
         Args:
-            palette: Mapping of color names to hex strings.
+            palette: Mapping of color names to hex strings (a ``Palette``
+                object also works).
             method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
                 or ``"ciede2000"``.
 
@@ -778,8 +795,7 @@ class Color:
             List of n Color instances.
         """
         return [
-            _new(rgb, self._alpha)
-            for rgb in _palettes.analogous(*self._rgb, n, step)
+            _new(rgb, self._alpha) for rgb in _palettes.analogous(*self._rgb, n, step)
         ]
 
     def triadic(self) -> list[Color]:
@@ -797,8 +813,7 @@ class Color:
             List of 2 Color instances.
         """
         return [
-            _new(rgb, self._alpha)
-            for rgb in _palettes.split_complementary(*self._rgb)
+            _new(rgb, self._alpha) for rgb in _palettes.split_complementary(*self._rgb)
         ]
 
     def tetradic(self) -> list[Color]:
@@ -1026,6 +1041,5 @@ class Color:
             h, s, v = self.hsv
             return f"hsv({h}, {s}%, {v}%)"
         raise ValueError(
-            f"Unknown format spec {format_spec!r}. "
-            "Use 'hex', 'rgb', 'hsl', or 'hsv'."
+            f"Unknown format spec {format_spec!r}. Use 'hex', 'rgb', 'hsl', or 'hsv'."
         )
