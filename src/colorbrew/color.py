@@ -19,6 +19,7 @@ from colorbrew.analysis import temperature as _temp
 from colorbrew.conversion import converters as _conv
 from colorbrew.conversion import css_output as _css
 from colorbrew.conversion.parsing import parse_rgb_args, parse_string_with_alpha
+from colorbrew.data import get_palette as _get_palette
 from colorbrew.data.material_colors import MATERIAL_COLORS
 from colorbrew.data.named_colors import NAMED_COLORS
 from colorbrew.data.tailwind_colors import TAILWIND_COLORS
@@ -195,40 +196,94 @@ class Color:
         return _new(_conv.hex_to_rgb(NAMED_COLORS[lower]))
 
     @classmethod
-    def from_tailwind(cls, name: str) -> Color:
+    def from_tailwind(
+        cls,
+        name: str,
+        *,
+        source: str = "bundled",
+        allow_network: bool = False,
+        allow_cache: bool = False,
+        cache_dir: str | None = None,
+        url: str | None = None,
+    ) -> Color:
         """Create a Color from a Tailwind CSS color name.
 
         Args:
             name: Tailwind color name (case-insensitive), e.g. ``"sky-500"``.
+            source: Palette source: ``"bundled"``, ``"cache"``, ``"api"``, or ``"auto"``.
+            allow_network: Permit remote palette fetches.
+            allow_cache: Permit disk cache reads/writes.
+            cache_dir: Optional cache directory override.
+            url: Optional JSON URL override for remote fetches.
 
         Returns:
             A new Color instance.
 
         Raises:
             ColorParseError: If the name is not a recognized Tailwind color.
+            ColorValueError: If the requested palette source is invalid or disabled.
         """
+        palette = (
+            TAILWIND_COLORS
+            if source == "bundled" and not allow_network and not allow_cache and url is None
+            else _get_palette(
+                "tailwind",
+                source=source,
+                allow_network=allow_network,
+                allow_cache=allow_cache,
+                cache_dir=cache_dir,
+                url=url,
+            )
+        )
         lower = name.lower().strip()
-        if lower not in TAILWIND_COLORS:
+        if lower not in palette:
             raise ColorParseError(f"Unknown Tailwind color: {name!r}")
-        return _new(_conv.hex_to_rgb(TAILWIND_COLORS[lower]))
+        return _new(_conv.hex_to_rgb(palette[lower]))
 
     @classmethod
-    def from_material(cls, name: str) -> Color:
+    def from_material(
+        cls,
+        name: str,
+        *,
+        source: str = "bundled",
+        allow_network: bool = False,
+        allow_cache: bool = False,
+        cache_dir: str | None = None,
+        url: str | None = None,
+    ) -> Color:
         """Create a Color from a Material Design color name.
 
         Args:
             name: Material color name (case-insensitive), e.g. ``"blue-600"``.
+            source: Palette source: ``"bundled"``, ``"cache"``, ``"api"``, or ``"auto"``.
+            allow_network: Permit remote palette fetches.
+            allow_cache: Permit disk cache reads/writes.
+            cache_dir: Optional cache directory override.
+            url: Optional JSON URL override for remote fetches.
 
         Returns:
             A new Color instance.
 
         Raises:
             ColorParseError: If the name is not a recognized Material color.
+            ColorValueError: If the requested palette source is invalid or disabled.
         """
+        palette = (
+            MATERIAL_COLORS
+            if source == "bundled" and not allow_network and not allow_cache and url is None
+            else _get_palette(
+                "material",
+                source=source,
+                allow_network=allow_network,
+                allow_cache=allow_cache,
+                cache_dir=cache_dir,
+                url=url,
+            )
+        )
         lower = name.lower().strip()
-        if lower not in MATERIAL_COLORS:
+        if lower not in palette:
             raise ColorParseError(f"Unknown Material Design color: {name!r}")
-        return _new(_conv.hex_to_rgb(MATERIAL_COLORS[lower]))
+        return _new(_conv.hex_to_rgb(palette[lower]))
 
     @classmethod
     def from_kelvin(cls, kelvin: int) -> Color:
@@ -432,29 +487,83 @@ class Color:
         """
         return _naming.find_closest_name(*self._rgb, method)
 
-    def closest_tailwind(self, method: DistanceMethod = "euclidean") -> NameMatch:
+    def closest_tailwind(
+        self,
+        method: DistanceMethod = "euclidean",
+        *,
+        source: str = "bundled",
+        allow_network: bool = False,
+        allow_cache: bool = False,
+        cache_dir: str | None = None,
+        url: str | None = None,
+    ) -> NameMatch:
         """Find the closest Tailwind CSS color.
 
         Args:
             method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
                 or ``"ciede2000"``.
+            source: Palette source: ``"bundled"``, ``"cache"``, ``"api"``, or ``"auto"``.
+            allow_network: Permit remote palette fetches.
+            allow_cache: Permit disk cache reads/writes.
+            cache_dir: Optional cache directory override.
+            url: Optional JSON URL override for remote fetches.
 
         Returns:
             A NameMatch with the closest Tailwind color name.
         """
-        return _naming.find_closest_tailwind(*self._rgb, method)
+        if source == "bundled" and not allow_network and not allow_cache and url is None:
+            return _naming.find_closest_tailwind(*self._rgb, method)
+        return _naming.find_closest_in_palette(
+            *self._rgb,
+            _get_palette(
+                "tailwind",
+                source=source,
+                allow_network=allow_network,
+                allow_cache=allow_cache,
+                cache_dir=cache_dir,
+                url=url,
+            ),
+            method,
+        )
 
-    def closest_material(self, method: DistanceMethod = "euclidean") -> NameMatch:
+    def closest_material(
+        self,
+        method: DistanceMethod = "euclidean",
+        *,
+        source: str = "bundled",
+        allow_network: bool = False,
+        allow_cache: bool = False,
+        cache_dir: str | None = None,
+        url: str | None = None,
+    ) -> NameMatch:
         """Find the closest Material Design color.
 
         Args:
             method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
                 or ``"ciede2000"``.
+            source: Palette source: ``"bundled"``, ``"cache"``, ``"api"``, or ``"auto"``.
+            allow_network: Permit remote palette fetches.
+            allow_cache: Permit disk cache reads/writes.
+            cache_dir: Optional cache directory override.
+            url: Optional JSON URL override for remote fetches.
 
         Returns:
             A NameMatch with the closest Material Design color name.
         """
-        return _naming.find_closest_material(*self._rgb, method)
+        if source == "bundled" and not allow_network and not allow_cache and url is None:
+            return _naming.find_closest_material(*self._rgb, method)
+        return _naming.find_closest_in_palette(
+            *self._rgb,
+            _get_palette(
+                "material",
+                source=source,
+                allow_network=allow_network,
+                allow_cache=allow_cache,
+                cache_dir=cache_dir,
+                url=url,
+            ),
+            method,
+        )
 
     def nearest_palette(
         self,

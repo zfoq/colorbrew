@@ -75,6 +75,9 @@ c = Color.from_tailwind("sky-500")
 c = Color.from_material("blue-600")
 c = Color.from_name("steelblue")
 
+# Optional remote/cache-backed palette loading
+c = Color.from_tailwind("sky-500", source="auto", allow_cache=True)
+
 # Random
 c = Color.random()
 ```
@@ -264,6 +267,32 @@ Color("#3498db").closest_name(method="ciede2000")
 ```
 
 Available palettes: 148 CSS named colors, 264 Tailwind CSS colors, 210 Material Design colors.
+
+### Optional Palette API and Cache
+
+Bundled palette tables stay the default and keep normal usage fully offline.
+Network access and disk cache are opt-in:
+
+```python
+from colorbrew import get_palette, list_palettes, refresh_palette
+
+list_palettes()                     # ('named', 'tailwind', 'material')
+get_palette("tailwind")            # bundled data, no network, no cache
+get_palette("tailwind", source="auto", allow_cache=True)  # cache -> bundled
+
+# Opt into remote JSON + optional cache write
+refresh_palette("tailwind", url="https://example.com/tailwind.json")
+get_palette(
+    "tailwind",
+    source="api",
+    allow_network=True,
+    allow_cache=True,
+    url="https://example.com/tailwind.json",
+)
+```
+
+`source="auto"` tries API first only when `allow_network=True`, then cache only when
+`allow_cache=True`, and finally falls back to the bundled data.
 
 ---
 

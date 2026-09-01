@@ -127,6 +127,27 @@ class TestColorFromName:
             Color.from_name("notacolor")
 
 
+class TestColorFromBundledPaletteSources:
+    """Test optional palette source controls on Color constructors."""
+
+    def test_from_tailwind_uses_cache_when_enabled(self, tmp_path):
+        """Load Tailwind colors from the optional cache."""
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir()
+        (cache_dir / "tailwind.json").write_text('{"brand-500": "#112233"}\n')
+        assert Color.from_tailwind(
+            "brand-500",
+            source="cache",
+            allow_cache=True,
+            cache_dir=cache_dir,
+        ) == Color("#112233")
+
+    def test_from_material_rejects_disabled_network(self):
+        """Reject API reads when network access is not enabled."""
+        with pytest.raises(ColorValueError, match="network access is disabled"):
+            Color.from_material("blue-500", source="api")
+
+
 class TestColorRandom:
     """Test Color.random class method."""
 
@@ -314,6 +335,23 @@ class TestColorClosestName:
         match = Color("#1e90ff").closest_name()
         assert match.name == "dodgerblue"
         assert isinstance(match.distance, float)
+
+
+class TestColorPaletteLookups:
+    """Test optional palette source controls on reverse lookups."""
+
+    def test_closest_tailwind_uses_cache_when_enabled(self, tmp_path):
+        """Load cached Tailwind palette data for lookup."""
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir()
+        (cache_dir / "tailwind.json").write_text('{"brand-500": "#112233"}\n')
+        match = Color("#112233").closest_tailwind(
+            source="cache",
+            allow_cache=True,
+            cache_dir=cache_dir,
+        )
+        assert match.name == "brand-500"
+        assert match.exact is True
 
 
 class TestColorAccessibility:
