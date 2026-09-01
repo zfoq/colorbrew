@@ -271,9 +271,10 @@ Available palettes: 148 CSS named colors, 242 Tailwind CSS colors, 190 Material 
 
 ### Optional Palette API and Cache
 
-Bundled palette tables stay the default and keep normal usage fully offline.
-Network access and disk cache are opt-in, and remote reads only happen when you pass
-`allow_network=True`:
+Bundled palette tables are packaged JSON resources loaded at import time, so the
+Python modules stay as thin compatibility loaders. Bundled data remains the
+default and keeps normal usage fully offline. Network access and disk cache are
+opt-in, and remote reads only happen when you pass `allow_network=True`:
 
 ```python
 from colorbrew import get_palette, get_palette_entries, list_palettes, refresh_palette
