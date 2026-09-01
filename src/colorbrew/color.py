@@ -571,7 +571,7 @@ class Color:
         """
         w = max(0.0, min(1.0, weight))
         mixed_alpha = self._alpha + (other._alpha - self._alpha) * w
-        return _new(_manip.mix(self._rgb, other._rgb, weight), mixed_alpha)
+        return _new(_manip.mix(self._rgb, other._rgb, w), mixed_alpha)
 
     def shade(self, amount: float = 0.5) -> Color:
         """Return a darker shade by mixing with black.
@@ -773,6 +773,26 @@ class Color:
             A WcagReport with ratio and AA/AAA results for normal and large text.
         """
         return _contrast.wcag_report(self._rgb, other._rgb)
+
+    def is_accessible_on(
+        self,
+        other: Color,
+        level: Literal["aa", "aaa"] = "aa",
+        large: bool = False,
+    ) -> bool:
+        """Check if this color is accessible on another color.
+
+        Args:
+            other: The background or comparison color.
+            level: ``"aa"`` or ``"aaa"``.
+            large: True for large text (lower thresholds).
+
+        Returns:
+            True if the pair meets the requested WCAG threshold.
+        """
+        if level == "aaa":
+            return self.meets_aaa(other, large=large)
+        return self.meets_aa(other, large=large)
 
     def suggest_text_color(self) -> Color:
         """Suggest black or white text for maximum readability on this color.
