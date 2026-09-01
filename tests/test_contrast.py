@@ -7,6 +7,7 @@ from colorbrew.analysis.contrast import (
     meets_aa,
     meets_aaa,
     relative_luminance,
+    wcag_report,
 )
 
 
@@ -114,3 +115,23 @@ class TestMeetsAaa:
         """Moderate contrast fails AAA."""
         # Gray on white typically doesn't meet 7.0
         assert meets_aaa((150, 150, 150), (255, 255, 255)) is False
+
+class TestWcagReport:
+    """Test WCAG summary reporting."""
+
+    def test_black_white_reports_all_thresholds(self):
+        """Black on white passes every WCAG threshold."""
+        report = wcag_report((0, 0, 0), (255, 255, 255))
+        assert report.ratio == 21.0
+        assert report.aa is True
+        assert report.aaa is True
+        assert report.aa_large is True
+        assert report.aaa_large is True
+
+    def test_mid_gray_fails_normal_thresholds(self):
+        """Mid gray on white shows the expected threshold split."""
+        report = wcag_report((255, 255, 255), (140, 140, 140))
+        assert report.aa is False
+        assert report.aaa is False
+        assert report.aa_large is True
+        assert report.aaa_large is False

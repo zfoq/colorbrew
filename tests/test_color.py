@@ -339,6 +339,13 @@ class TestColorAccessibility:
         """Black/white passes AAA."""
         assert Color(0, 0, 0).meets_aaa(Color(255, 255, 255)) is True
 
+    def test_wcag_report(self):
+        """Return a WCAG summary report for a color pair."""
+        report = Color(255, 255, 255).wcag_report(Color(140, 140, 140))
+        assert report.ratio == 3.36
+        assert report.aa is False
+        assert report.aa_large is True
+
     def test_adjust_contrast(self):
         """Adjust a target color until it meets AA."""
         bg = Color(255, 255, 255)

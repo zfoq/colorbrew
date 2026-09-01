@@ -26,7 +26,13 @@ from colorbrew.exceptions import ColorParseError, ColorValueError
 from colorbrew.transform import blending as _blending
 from colorbrew.transform import manipulation as _manip
 from colorbrew.transform import palettes as _palettes
-from colorbrew.types import BlendMode, ColorVisionDeficiency, DistanceMethod, NameMatch
+from colorbrew.types import (
+    BlendMode,
+    ColorVisionDeficiency,
+    DistanceMethod,
+    NameMatch,
+    WcagReport,
+)
 
 
 def _new(rgb: tuple[int, int, int], alpha: float = 1.0) -> Color:
@@ -733,6 +739,17 @@ class Color:
             True if the pair meets AAA requirements.
         """
         return _contrast.meets_aaa(self._rgb, other._rgb, large)
+
+    def wcag_report(self, other: Color) -> WcagReport:
+        """Summarize WCAG contrast compliance against another color.
+
+        Args:
+            other: The color to compare against.
+
+        Returns:
+            A WcagReport with ratio and AA/AAA results for normal and large text.
+        """
+        return _contrast.wcag_report(self._rgb, other._rgb)
 
     def suggest_text_color(self) -> Color:
         """Suggest black or white text for maximum readability on this color.

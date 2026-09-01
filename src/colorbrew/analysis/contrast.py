@@ -10,6 +10,7 @@ from typing import Literal
 
 from colorbrew.conversion.converters import hsl_to_rgb, rgb_to_hsl
 from colorbrew.conversion.gamma import linearize as _linearize
+from colorbrew.types import WcagReport
 
 
 def relative_luminance(r: int, g: int, b: int) -> float:
@@ -115,6 +116,29 @@ def meets_aaa(
     ratio = contrast_ratio(rgb1, rgb2)
     threshold = 4.5 if large else 7.0
     return ratio >= threshold
+
+
+def wcag_report(
+    rgb1: tuple[int, int, int],
+    rgb2: tuple[int, int, int],
+) -> WcagReport:
+    """Summarize WCAG contrast compliance for a color pair.
+
+    Args:
+        rgb1: First color as (r, g, b).
+        rgb2: Second color as (r, g, b).
+
+    Returns:
+        A WcagReport with ratio and AA/AAA results for normal and large text.
+    """
+    ratio = contrast_ratio(rgb1, rgb2)
+    return WcagReport(
+        ratio=ratio,
+        aa=ratio >= 4.5,
+        aaa=ratio >= 7.0,
+        aa_large=ratio >= 3.0,
+        aaa_large=ratio >= 4.5,
+    )
 
 
 def suggest_text_color(

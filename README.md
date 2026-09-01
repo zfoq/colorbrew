@@ -274,6 +274,10 @@ bg.contrast(text)              # 12.72 (contrast ratio 1:1 to 21:1)
 bg.meets_aa(text)              # True  (≥ 4.5:1)
 bg.meets_aaa(text)             # True  (≥ 7:1)
 bg.meets_aa(text, large=True)  # True  (large text: ≥ 3:1)
+
+report = bg.wcag_report(text)
+report.ratio                   # 12.72
+report.aa_large                # True
 ```
 
 ### Auto Text Color
