@@ -225,6 +225,23 @@ class Color:
         return _new(_conv.hex_to_rgb(MATERIAL_COLORS[lower]))
 
     @classmethod
+    def from_kelvin(cls, kelvin: int) -> Color:
+        """Create an approximate color from a color temperature in Kelvin.
+
+        Args:
+            kelvin: Color temperature in Kelvin.
+
+        Returns:
+            A new Color instance.
+
+        Raises:
+            ColorValueError: If kelvin is not an integer.
+        """
+        if not isinstance(kelvin, int):
+            raise ColorValueError("Kelvin must be an integer.")
+        return _new(_temp.kelvin_to_rgb(kelvin))
+
+    @classmethod
     def random(cls) -> Color:
         """Create a random Color using ``random.randint``.
 
