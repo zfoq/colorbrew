@@ -410,6 +410,13 @@ class TestColorMix:
         result = Color(0, 0, 0).mix(Color(255, 255, 255), 0.5)
         assert result == Color(128, 128, 128)
 
+    def test_clamps_weight_to_valid_range(self):
+        """Out-of-range weights clamp to the nearest endpoint."""
+        red = Color(255, 0, 0)
+        blue = Color(0, 0, 255)
+        assert red.mix(blue, -1.0) == red
+        assert red.mix(blue, 2.0) == blue
+
 
 class TestColorPalettes:
     """Test palette methods on Color."""

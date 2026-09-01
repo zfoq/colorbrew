@@ -170,10 +170,11 @@ c.invert()              # RGB inverse (255 - each channel)
 c.grayscale()           # remove saturation
 
 # Mixing
-c.mix(Color("red"), 0.5)  # 50/50 blend in RGB space
-c.shade(0.3)              # mix with black (darken)
-c.tint(0.3)               # mix with white (lighten)
-c.tone(0.3)               # mix with gray (mute)
+c.mix(Color("red"), 0.5)   # 50/50 blend in RGB space
+c.mix(Color("red"), 2.0)   # clamps to 1.0 (full red)
+c.shade(0.3)               # mix with black (darken)
+c.tint(0.3)                # mix with white (lighten)
+c.tone(0.3)                # mix with gray (mute)
 ```
 
 ### Gradients

@@ -548,7 +548,7 @@ class Color:
         """
         w = max(0.0, min(1.0, weight))
         mixed_alpha = self._alpha + (other._alpha - self._alpha) * w
-        return _new(_manip.mix(self._rgb, other._rgb, weight), mixed_alpha)
+        return _new(_manip.mix(self._rgb, other._rgb, w), mixed_alpha)
 
     def shade(self, amount: float = 0.5) -> Color:
         """Return a darker shade by mixing with black.
