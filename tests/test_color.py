@@ -551,6 +551,19 @@ class TestColorFromMaterial:
         with pytest.raises(ColorParseError):
             Color.from_material("nonexistent-500")
 
+class TestColorFromKelvin:
+    """Test Color.from_kelvin class method."""
+
+    def test_returns_color(self):
+        """Create a Color instance from Kelvin."""
+        c = Color.from_kelvin(6500)
+        assert isinstance(c, Color)
+
+    def test_rejects_non_integer(self):
+        """Reject non-integer Kelvin input."""
+        with pytest.raises(ColorValueError):
+            Color.from_kelvin(6500.0)
+
 
 class TestColorClosestTailwind:
     """Test Color.closest_tailwind method."""
