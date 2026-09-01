@@ -346,6 +346,18 @@ class TestColorAccessibility:
         assert report.aa is False
         assert report.aa_large is True
 
+    def test_adjust_contrast(self):
+        """Adjust a target color until it meets AA."""
+        bg = Color(255, 255, 255)
+        adjusted = bg.adjust_contrast(Color(200, 200, 200))
+        assert bg.meets_aa(adjusted) is True
+
+    def test_adjust_contrast_large(self):
+        """Allow the lower large-text threshold when requested."""
+        bg = Color(255, 255, 255)
+        adjusted = bg.adjust_contrast(Color(140, 140, 140), large=True)
+        assert bg.meets_aa(adjusted, large=True) is True
+
 
 class TestColorTemperature:
     """Test temperature methods on Color."""
@@ -545,6 +557,19 @@ class TestColorFromMaterial:
         """Raise ColorParseError for unknown Material name."""
         with pytest.raises(ColorParseError):
             Color.from_material("nonexistent-500")
+
+class TestColorFromKelvin:
+    """Test Color.from_kelvin class method."""
+
+    def test_returns_color(self):
+        """Create a Color instance from Kelvin."""
+        c = Color.from_kelvin(6500)
+        assert isinstance(c, Color)
+
+    def test_rejects_non_integer(self):
+        """Reject non-integer Kelvin input."""
+        with pytest.raises(ColorValueError):
+            Color.from_kelvin(6500.0)
 
 
 class TestColorClosestTailwind:

@@ -307,6 +307,9 @@ accessible.hex                   # darker shade that passes 4.5:1
 # Large text uses the lower WCAG threshold automatically
 accessible_large = bg.find_accessible_color(brand, level="aa", large=True)
 
+# Alias with a clearer intent-focused name
+accessible = bg.adjust_contrast(brand)
+
 # AAA level
 accessible = bg.find_accessible_color(brand, level="aaa")
 ```
@@ -357,6 +360,16 @@ delta_e_76(lab1, lab2)     # CIE76 distance
 ## Color Blindness Simulation
 
 Preview how colors appear to users with color vision deficiencies:
+
+### Kelvin Approximation
+
+```python
+warm = Color.from_kelvin(2700)   # warm indoor light
+neutral = Color.from_kelvin(6500)
+
+warm.temperature    # "warm"
+neutral.kelvin      # estimated back from RGB
+```
 
 ```python
 c = Color("#ff4444")

@@ -231,6 +231,23 @@ class Color:
         return _new(_conv.hex_to_rgb(MATERIAL_COLORS[lower]))
 
     @classmethod
+    def from_kelvin(cls, kelvin: int) -> Color:
+        """Create an approximate color from a color temperature in Kelvin.
+
+        Args:
+            kelvin: Color temperature in Kelvin.
+
+        Returns:
+            A new Color instance.
+
+        Raises:
+            ColorValueError: If kelvin is not an integer.
+        """
+        if not isinstance(kelvin, int):
+            raise ColorValueError("Kelvin must be an integer.")
+        return _new(_temp.kelvin_to_rgb(kelvin))
+
+    @classmethod
     def random(cls) -> Color:
         """Create a random Color using ``random.randint``.
 
@@ -764,6 +781,24 @@ class Color:
         return _new(
             _contrast.find_accessible_color(self._rgb, target._rgb, level, large)
         )
+
+    def adjust_contrast(
+        self,
+        target: Color,
+        level: Literal["aa", "aaa"] = "aa",
+        large: bool = False,
+    ) -> Color:
+        """Return a contrast-compliant version of *target* against this color.
+
+        Args:
+            target: The desired foreground color.
+            level: ``"aa"`` or ``"aaa"``.
+            large: True for large text (lower thresholds).
+
+        Returns:
+            An accessible Color close to *target*.
+        """
+        return self.find_accessible_color(target, level=level, large=large)
 
     # --- Methods: color blindness simulation ---
 

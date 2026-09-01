@@ -1,6 +1,10 @@
 """Tests for colorbrew.temperature — color temperature classification."""
 
-from colorbrew.analysis.temperature import classify_temperature, estimate_kelvin
+from colorbrew.analysis.temperature import (
+    classify_temperature,
+    estimate_kelvin,
+    kelvin_to_rgb,
+)
 
 
 class TestClassifyTemperature:
@@ -52,3 +56,19 @@ class TestEstimateKelvin:
     def test_black_returns_minimum(self):
         """Black returns the minimum Kelvin value."""
         assert estimate_kelvin(0, 0, 0) == 1000
+
+class TestKelvinToRgb:
+    """Test RGB approximation from Kelvin values."""
+
+    def test_returns_rgb_tuple(self):
+        """Return a valid RGB tuple."""
+        rgb = kelvin_to_rgb(6500)
+        assert len(rgb) == 3
+        assert all(0 <= channel <= 255 for channel in rgb)
+
+    def test_warm_kelvin_is_redder(self):
+        """Low Kelvin values are warmer than high Kelvin values."""
+        warm = kelvin_to_rgb(2000)
+        cool = kelvin_to_rgb(9000)
+        assert warm[0] > warm[2]
+        assert cool[2] >= cool[0]
