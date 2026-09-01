@@ -455,3 +455,14 @@ class TestPaletteScale:
         s = c.scale()
         for color in s.values():
             assert abs(color.hsl[0] - base_h) <= 2
+
+class TestFindAccessibleColorLargeText:
+    """Test large-text threshold behavior."""
+
+    def test_uses_lower_aa_threshold(self):
+        """Large text accepts the lower AA contrast threshold."""
+        bg = Color(255, 255, 255)
+        fg = Color(140, 140, 140)
+        assert bg.meets_aa(fg) is False
+        adjusted = bg.find_accessible_color(fg, large=True)
+        assert bg.meets_aa(adjusted, large=True) is True

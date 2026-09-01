@@ -110,6 +110,7 @@ c.css_hsla(0.5)        # "hsla(204, 70%, 53%, 0.5)"
 c.css_rgb_modern()     # "rgb(52 152 219)"
 c.with_alpha(0.8).css_rgb_modern()  # "rgb(52 152 219 / 0.8)"
 c.css_hsl_modern()     # "hsl(204 70% 53%)"
+c.with_alpha(0.8).css_hsl_modern()  # "hsl(204 70% 53% / 0.8)"
 
 # Format strings
 f"{c:hex}"             # "#3498db"
@@ -135,7 +136,7 @@ c.hex            # "#3498db80"
 
 # Modify alpha
 c.with_alpha(0.3)  # new Color with alpha 0.3
-c.opaque           # new Color with alpha 1.0
+c.opaque           # new Color with alpha 1.0 (same instance if already opaque)
 
 # Transforms preserve alpha
 c.lighten(20).alpha       # 0.5 (unchanged)
@@ -298,6 +299,9 @@ brand = Color("#99ccff")         # too light for white bg
 # Find the closest color to brand that passes AA
 accessible = bg.find_accessible_color(brand, level="aa")
 accessible.hex                   # darker shade that passes 4.5:1
+
+# Large text uses the lower WCAG threshold automatically
+accessible_large = bg.find_accessible_color(brand, level="aa", large=True)
 
 # AAA level
 accessible = bg.find_accessible_color(brand, level="aaa")
