@@ -456,6 +456,29 @@ class Color:
         """
         return _naming.find_closest_material(*self._rgb, method)
 
+    def nearest_palette(
+        self,
+        palette: dict[str, str],
+        method: DistanceMethod = "euclidean",
+    ) -> NameMatch:
+        """Find the closest color in a custom palette.
+
+        Args:
+            palette: Mapping of color names to hex strings.
+            method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+                or ``"ciede2000"``.
+
+        Returns:
+            A NameMatch with the closest palette entry.
+
+        Raises:
+            ColorValueError: If the palette is empty.
+            ColorParseError: If a palette color cannot be parsed.
+        """
+        if not palette:
+            raise ColorValueError("Palette must not be empty.")
+        return _naming.find_closest_in_palette(*self._rgb, palette, method)
+
     # --- Methods: color distance ---
 
     def distance(self, other: Color, method: DistanceMethod = "ciede2000") -> float:

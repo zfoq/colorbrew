@@ -254,6 +254,10 @@ match.exact      # False
 Color("#3498db").closest_tailwind()    # NameMatch("sky-500", ...)
 Color("#3498db").closest_material()    # NameMatch("blue-400", ...)
 
+# Custom palette lookup
+palette = {"brand": "#3498db", "accent": "#e74c3c"}
+Color("#338fd8").nearest_palette(palette)  # NameMatch("brand", ...)
+
 # Use perceptual distance for better accuracy
 Color("#3498db").closest_name(method="ciede2000")
 ```
