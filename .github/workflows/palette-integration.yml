@@ -1,0 +1,19 @@
+name: Palette integration
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync
+      - run: uv run pytest tests/test_palette_integration.py -v
+        env:
+          COLORBREW_RUN_INTEGRATION_TESTS: "1"

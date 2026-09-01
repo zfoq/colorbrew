@@ -4,6 +4,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/colorbrew)](https://pypi.org/project/colorbrew/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/zfoq/colorbrew/blob/main/LICENSE)
 [![Tests](https://github.com/zfoq/colorbrew/actions/workflows/ci.yml/badge.svg)](https://github.com/zfoq/colorbrew/actions)
+[![Palette integration](https://github.com/zfoq/colorbrew/actions/workflows/palette-integration.yml/badge.svg)](https://github.com/zfoq/colorbrew/actions)
 [![PyPI downloads](https://img.shields.io/pypi/dm/colorbrew)](https://pypi.org/project/colorbrew/)
 
 A lightweight, zero-dependency Python library for color manipulation, conversion, and accessibility analysis.
@@ -572,6 +573,17 @@ uv sync
 uv run pytest
 uv run ruff check src/
 ```
+
+### Integration tests
+
+Palette integration tests exercise the opt-in network palette loaders.
+They are skipped by default so normal local runs stay offline and fast:
+
+```bash
+COLORBREW_RUN_INTEGRATION_TESTS=1 uv run pytest tests/test_palette_integration.py
+```
+
+A scheduled GitHub Actions workflow runs these tests weekly.
 
 ## Contributing
 
