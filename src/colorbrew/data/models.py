@@ -20,6 +20,7 @@ class Palette(Mapping[str, str]):
     version: str
     entries: dict[str, str]
     source: str = "bundled"
+    source_version: str | None = None
 
     @staticmethod
     def _normalize_key(name: str) -> str:
@@ -36,7 +37,13 @@ class Palette(Mapping[str, str]):
 
     def __hash__(self) -> int:
         return hash(
-            (self.family, self.version, self.source, frozenset(self.entries.items()))
+            (
+                self.family,
+                self.version,
+                self.source,
+                self.source_version,
+                frozenset(self.entries.items()),
+            )
         )
 
     def get(self, name: str, default: str | None = None) -> str | None:

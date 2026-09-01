@@ -19,13 +19,41 @@ _PACKAGE_VERSION = _package_version("colorbrew")
 
 _HEX_RE = re.compile(r"^#[0-9a-f]{6}$")
 
-_BUNDLED_PALETTES: dict[str, dict[str, str]] = {
-    "named": NAMED_COLORS,
-    "tailwind": TAILWIND_COLORS,
-    "material": MATERIAL_COLORS,
+_DEFAULT_VERSIONS: dict[str, str] = {
+    "named": "v1",
+    "tailwind": "v3",
+    "material": "v2",
 }
 
-_PALETTE_URLS: dict[str, str] = {}
+_SUPPORTED_VERSIONS: dict[str, tuple[str, ...]] = {
+    "named": ("v1",),
+    "tailwind": ("v3", "v4"),
+    "material": ("v2", "v3"),
+}
+
+_BUNDLED_PALETTES: dict[str, dict[str, str]] = {
+    "named": NAMED_COLORS,
+    "named@v1": NAMED_COLORS,
+    "tailwind": TAILWIND_COLORS,
+    "tailwind@v3": TAILWIND_COLORS,
+    "material": MATERIAL_COLORS,
+    "material@v2": MATERIAL_COLORS,
+}
+
+_PALETTE_URLS: dict[str, str] = {
+    "tailwind@v3": (
+        "https://gist.githubusercontent.com/indaco/"
+        "e2a62b02a637619897b02da8405f3022/raw/tailwindcss_colors.json"
+    ),
+    "tailwind@v4": (
+        "https://raw.githubusercontent.com/tailwindlabs/tailwindcss/"
+        "v4.0.0/packages/tailwindcss/src/theme.css"
+    ),
+    "material@v3": (
+        "https://raw.githubusercontent.com/material-foundation/material-tokens/"
+        "main/css/baseline.css"
+    ),
+}
 
 
 def _cache_file(name: str, cache_dir: str | Path | None) -> Path:
@@ -43,15 +71,32 @@ def _normalize_palette(palette: object) -> dict[str, str]:
 
     normalized: dict[str, str] = {}
     for key, value in palette.items():
-        if not isinstance(key, str) or not isinstance(value, str):
-            raise ColorValueError("Palette entries must be string-to-string mappings.")
+        if not isinstance(key, str):
+            raise ColorValueError("Palette keys must be strings.")
         name = key.strip().lower()
-        hex_value = value.strip().lower()
         if not name:
             raise ColorValueError("Palette keys must not be empty.")
-        if not _HEX_RE.match(hex_value):
-            raise ColorValueError(f"Invalid hex color for {key!r}: {value!r}")
-        normalized[name] = hex_value
+
+        if isinstance(value, str):
+            hex_value = value.strip().lower()
+            if not _HEX_RE.match(hex_value):
+                raise ColorValueError(f"Invalid hex color for {key!r}: {value!r}")
+            normalized[name] = hex_value
+        elif isinstance(value, dict):
+            for shade, shade_value in value.items():
+                shade_str = str(shade).strip().lower()
+                if not isinstance(shade_value, str):
+                    raise ColorValueError(
+                        f"Palette entries must be string-to-string mappings: {key!r}"
+                    )
+                hex_value = shade_value.strip().lower()
+                if not _HEX_RE.match(hex_value):
+                    raise ColorValueError(
+                        f"Invalid hex color for {key!r}.{shade!r}: {shade_value!r}"
+                    )
+                normalized[f"{name}-{shade_str}"] = hex_value
+        else:
+            raise ColorValueError("Palette entries must be string-to-string mappings.")
     return normalized
 
 
@@ -79,14 +124,41 @@ def _write_cached_palette(
 
 def list_palettes() -> tuple[str, ...]:
     """Return the built-in palette family names."""
-    return tuple(_BUNDLED_PALETTES)
+    return tuple(_DEFAULT_VERSIONS)
 
 
-def _validate_palette_name(name: str) -> str:
-    palette_name = name.strip().lower()
-    if palette_name not in _BUNDLED_PALETTES:
+def _palette_key(family: str, version: str) -> str:
+    return f"{family}@{version}"
+
+
+def _cache_key(family: str, version: str) -> str:
+    if version == _DEFAULT_VERSIONS.get(family):
+        return family
+    return _palette_key(family, version)
+
+
+def _parse_palette_name(name: str) -> tuple[str, str | None]:
+    parts = name.strip().split("@", 1)
+    family = parts[0].strip().lower()
+    version = parts[1].strip().lower() if len(parts) > 1 else None
+    return family, version
+
+
+def _validate_palette_version(family: str, version: str) -> str:
+    if version not in _SUPPORTED_VERSIONS[family]:
+        raise ColorValueError(
+            f"Unsupported palette version for {family!r}: {version!r}"
+        )
+    return version
+
+
+def _validate_palette_name(name: str) -> tuple[str, str]:
+    family, version = _parse_palette_name(name)
+    if family not in _DEFAULT_VERSIONS:
         raise ColorValueError(f"Unknown palette family: {name!r}")
-    return palette_name
+    effective_version = version or _DEFAULT_VERSIONS[family]
+    _validate_palette_version(family, effective_version)
+    return family, effective_version
 
 
 def _validate_source(source: str) -> str:
@@ -99,6 +171,7 @@ def _validate_source(source: str) -> str:
 def get_palette(
     name: str,
     *,
+    version: str | None = None,
     source: str = "bundled",
     allow_network: bool = False,
     allow_cache: bool = False,
@@ -110,6 +183,9 @@ def get_palette(
 
     Args:
         name: Palette family name: ``"named"``, ``"tailwind"``, or ``"material"``.
+            A version can be pinned with ``family@version`` (e.g. ``"tailwind@v4"``).
+        version: Optional explicit version, e.g. ``"v3"`` or ``"v4"``.
+            Defaults to the family's stable bundled version.
         source: ``"bundled"``, ``"cache"``, ``"api"``, or ``"auto"``.
         allow_network: Permit network fetches for ``"api"`` or ``"auto"``.
         allow_cache: Permit disk cache reads/writes for ``"cache"``, ``"api"``, or ``"auto"``.
@@ -118,22 +194,33 @@ def get_palette(
         timeout: Network timeout in seconds.
 
     Returns:
-        A :class:`Palette` with ``family``, ``version``, ``source``, and
-        ``entries`` metadata.
+        A :class:`Palette` with ``family``, ``version``, ``source``,
+        ``source_version``, and ``entries`` metadata.
 
     Raises:
-        ColorValueError: If the palette name/source is unknown or access is disabled.
+        ColorValueError: If the palette name/version/source is unknown or access is disabled.
     """
-    palette_name = _validate_palette_name(name)
+    palette_name, parsed_version = _validate_palette_name(name)
+    palette_version = (
+        _validate_palette_version(palette_name, version.strip().lower())
+        if version is not None
+        else parsed_version
+    )
     source_name = _validate_source(source)
+    key = _palette_key(palette_name, palette_version)
 
     if source_name == "bundled":
+        if key not in _BUNDLED_PALETTES:
+            raise ColorValueError(f"Palette version is not available bundled: {key!r}")
         return Palette(
             family=palette_name,
             version=_PACKAGE_VERSION,
             source="bundled",
-            entries=dict(_BUNDLED_PALETTES[palette_name]),
+            source_version=palette_version,
+            entries=dict(_BUNDLED_PALETTES[key]),
         )
+
+    cache_key = _cache_key(palette_name, palette_version)
 
     if source_name == "cache":
         if not allow_cache:
@@ -142,24 +229,24 @@ def get_palette(
             family=palette_name,
             version="upstream",
             source="cache",
-            entries=_load_cached_palette(palette_name, cache_dir),
+            source_version=palette_version,
+            entries=_load_cached_palette(cache_key, cache_dir),
         )
 
     if source_name == "api":
         if not allow_network:
             raise ColorValueError("Palette network access is disabled.")
-        palette_url = url or _PALETTE_URLS.get(palette_name)
+        palette_url = url or _PALETTE_URLS.get(key)
         if palette_url is None:
-            raise ColorValueError(
-                f"No remote source configured for palette: {palette_name}"
-            )
+            raise ColorValueError(f"No remote source configured for palette: {key}")
         entries = _fetch_palette(palette_url, timeout)
         if allow_cache:
-            _write_cached_palette(palette_name, entries, cache_dir)
+            _write_cached_palette(cache_key, entries, cache_dir)
         return Palette(
             family=palette_name,
             version="upstream",
             source="api",
+            source_version=palette_version,
             entries=entries,
         )
 
@@ -168,6 +255,7 @@ def get_palette(
             try:
                 return get_palette(
                     palette_name,
+                    version=palette_version,
                     source="api",
                     allow_network=True,
                     allow_cache=allow_cache,
@@ -184,13 +272,18 @@ def get_palette(
             try:
                 return get_palette(
                     palette_name,
+                    version=palette_version,
                     source="cache",
                     allow_cache=True,
                     cache_dir=cache_dir,
                 )
             except OSError:
                 pass
-        return get_palette(palette_name, source="bundled")
+        return get_palette(
+            palette_name,
+            version=palette_version,
+            source="bundled",
+        )
 
     raise ColorValueError(f"Unknown palette source: {source!r}")
 
@@ -198,6 +291,7 @@ def get_palette(
 def get_palette_entries(
     name: str,
     *,
+    version: str | None = None,
     source: str = "bundled",
     allow_network: bool = False,
     allow_cache: bool = False,
@@ -212,6 +306,7 @@ def get_palette_entries(
     """
     return get_palette(
         name,
+        version=version,
         source=source,
         allow_network=allow_network,
         allow_cache=allow_cache,
@@ -225,20 +320,28 @@ def refresh_palette(
     name: str,
     *,
     url: str,
+    version: str | None = None,
     cache_dir: str | Path | None = None,
     write_cache: bool = True,
     timeout: float = 5.0,
 ) -> Palette:
     """Fetch a palette from a JSON API and optionally cache it."""
-    palette_name = _validate_palette_name(name)
+    palette_name, parsed_version = _validate_palette_name(name)
+    palette_version = (
+        _validate_palette_version(palette_name, version.strip().lower())
+        if version is not None
+        else parsed_version
+    )
+    cache_key = _cache_key(palette_name, palette_version)
     if not url.strip():
         raise ColorValueError("Palette URL must not be empty.")
     entries = _fetch_palette(url, timeout)
     if write_cache:
-        _write_cached_palette(palette_name, entries, cache_dir)
+        _write_cached_palette(cache_key, entries, cache_dir)
     return Palette(
         family=palette_name,
         version="upstream",
         source="api",
+        source_version=palette_version,
         entries=entries,
     )

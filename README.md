@@ -282,6 +282,7 @@ list_palettes()                     # ('named', 'tailwind', 'material')
 palette = get_palette("tailwind")   # Palette object with metadata
 palette.family                      # 'tailwind'
 palette.source                      # 'bundled'
+palette.source_version              # 'v3' — stable bundled version
 palette.entries["sky-500"]         # '#0ea5e9'
 
 # Palette behaves like a read-only mapping, so existing subscript/iteration code works
@@ -290,6 +291,16 @@ palette["sky-500"]                 # '#0ea5e9'
 
 # Backward-compatibility helper for the old dict[str, str] return type
 get_palette_entries("tailwind")["sky-500"]  # '#0ea5e9'
+
+# Version selection (default is the stable bundled version)
+get_palette("tailwind")                       # bundled Tailwind CSS v3
+get_palette("tailwind", version="v3")         # explicit bundled v3
+get_palette("tailwind@v3")                    # version pinned in the name
+get_palette("tailwind", version="v4",
+            source="api", allow_network=True)  # upstream Tailwind CSS v4
+get_palette("material")                       # bundled Material Design v2
+get_palette("material", version="v3",
+            source="api", allow_network=True)  # upstream Material Design v3
 
 get_palette("tailwind", source="auto", allow_cache=True)  # cache -> bundled
 
@@ -304,9 +315,17 @@ get_palette(
 )
 ```
 
-`get_palette` returns a `Palette` object with `family`, `version`, `source`, and
-`entries` metadata. `get_palette_entries` returns the same data as a plain
-`dict[str, str]` for code that predates the `Palette` type.
+`get_palette` returns a `Palette` object with `family`, `version`, `source`,
+`source_version`, and `entries` metadata. `source_version` is the palette version
+selected by the caller (e.g. `v3` or `v4`), while `version` is either the package
+version for bundled data or `"upstream"` for API/cache sources.
+`get_palette_entries` returns the same data as a plain `dict[str, str]` for code
+that predates the `Palette` type.
+
+The default source is `"bundled"`, so normal usage stays fully offline. Each
+family has a stable default version (`tailwind` → `v3`, `material` → `v2`).
+Other versions are fetched from upstream only when you pass `source="api"` (or
+`source="auto"`) together with `allow_network=True`.
 
 `source="auto"` tries API first only when `allow_network=True`, then cache only when
 `allow_cache=True`, and finally falls back to the bundled data.

@@ -182,3 +182,136 @@ class TestPaletteApi:
             )["sky-500"]
             == "#0ea5e9"
         )
+
+    def test_tailwind_bundled_defaults_to_v3(self):
+        """Default Tailwind load returns the bundled v3 palette."""
+        palette = get_palette("tailwind")
+        assert palette.source_version == "v3"
+        assert palette["sky-500"] == "#0ea5e9"
+
+    def test_tailwind_version_v3_bundled(self):
+        """Explicit Tailwind v3 uses bundled data without network."""
+        palette = get_palette("tailwind", version="v3")
+        assert palette.source_version == "v3"
+        assert palette.source == "bundled"
+        assert palette["sky-500"] == "#0ea5e9"
+
+    def test_tailwind_version_v4_upstream_default_url(self, monkeypatch):
+        """Tailwind v4 fetches from the default upstream URL when enabled."""
+        called_with: list[str] = []
+
+        def fake_urlopen(url: str, timeout: float):
+            called_with.append(url)
+            return _FakeResponse({"brand": {"500": "#aabbcc"}})
+
+        monkeypatch.setattr("colorbrew.data.api.urlopen", fake_urlopen)
+        palette = get_palette(
+            "tailwind",
+            version="v4",
+            source="api",
+            allow_network=True,
+        )
+        assert palette.source_version == "v4"
+        assert palette.source == "api"
+        assert palette["brand-500"] == "#aabbcc"
+        assert called_with == [
+            "https://raw.githubusercontent.com/tailwindlabs/tailwindcss/"
+            "v4.0.0/packages/tailwindcss/src/theme.css"
+        ]
+
+    def test_tailwind_version_v4_upstream_explicit_url(self, monkeypatch):
+        """Tailwind v4 upstream URL can be overridden explicitly."""
+        called_with: list[str] = []
+
+        def fake_urlopen(url: str, timeout: float):
+            called_with.append(url)
+            return _FakeResponse({"brand": {"500": "#ddeeff"}})
+
+        monkeypatch.setattr("colorbrew.data.api.urlopen", fake_urlopen)
+        palette = get_palette(
+            "tailwind",
+            version="v4",
+            source="api",
+            allow_network=True,
+            url="https://example.com/tailwind-v4.json",
+        )
+        assert palette["brand-500"] == "#ddeeff"
+        assert called_with == ["https://example.com/tailwind-v4.json"]
+
+    def test_tailwind_bundled_preserves_offline_behavior(self):
+        """Default Tailwind load never touches the network."""
+        palette = get_palette("tailwind")
+        assert palette.source == "bundled"
+        assert palette.source_version == "v3"
+
+    def test_material_v2_bundled_defaults(self):
+        """Default Material load returns the bundled v2 palette."""
+        palette = get_palette("material")
+        assert palette.source_version == "v2"
+        assert palette["blue-600"] == "#1e88e5"
+
+    def test_material_v2_bundled_explicit(self):
+        """Explicit Material v2 uses bundled data."""
+        palette = get_palette("material", version="v2")
+        assert palette.source_version == "v2"
+        assert palette.source == "bundled"
+
+    def test_material_v3_upstream(self, monkeypatch):
+        """Material v3 fetches from the default upstream URL when enabled."""
+        called_with: list[str] = []
+
+        def fake_urlopen(url: str, timeout: float):
+            called_with.append(url)
+            return _FakeResponse({"primary": {"500": "#123456"}})
+
+        monkeypatch.setattr("colorbrew.data.api.urlopen", fake_urlopen)
+        palette = get_palette(
+            "material",
+            version="v3",
+            source="api",
+            allow_network=True,
+        )
+        assert palette.source_version == "v3"
+        assert palette.source == "api"
+        assert palette["primary-500"] == "#123456"
+        assert called_with == [
+            "https://raw.githubusercontent.com/material-foundation/material-tokens/"
+            "main/css/baseline.css"
+        ]
+
+    def test_material_version_v3_source_version(self, monkeypatch):
+        """Material v3 exposes its version via source_version metadata."""
+
+        def fake_urlopen(_url: str, timeout: float):
+            return _FakeResponse({"primary": {"500": "#123456"}})
+
+        monkeypatch.setattr("colorbrew.data.api.urlopen", fake_urlopen)
+        palette = get_palette(
+            "material",
+            version="v3",
+            source="api",
+            allow_network=True,
+        )
+        assert palette.source_version == "v3"
+        assert palette.family == "material"
+
+    def test_version_reject_unsupported_tailwind(self):
+        """Unsupported Tailwind versions fail before any network access."""
+        with pytest.raises(ColorValueError, match="Unsupported palette version"):
+            get_palette("tailwind", version="v5", source="api", allow_network=True)
+
+    def test_version_reject_unsupported_material(self):
+        """Unsupported Material versions fail before any network access."""
+        with pytest.raises(ColorValueError, match="Unsupported palette version"):
+            get_palette("material", version="v1", source="api", allow_network=True)
+
+    def test_version_reject_bundled_upstream_only(self):
+        """Upstream-only versions fail cleanly when bundled source is requested."""
+        with pytest.raises(ColorValueError, match="not available bundled"):
+            get_palette("tailwind", version="v4", source="bundled")
+
+    def test_version_parsed_from_palette_name(self):
+        """Version can be pinned with family@version syntax."""
+        palette = get_palette("tailwind@v3")
+        assert palette.source_version == "v3"
+        assert palette.source == "bundled"
