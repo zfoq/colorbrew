@@ -18,16 +18,9 @@ BlendMode = Literal[
 ColorVisionDeficiency = Literal["protanopia", "deuteranopia", "tritanopia"]
 """Color vision deficiency type for simulation."""
 
-class WcagReport(NamedTuple):
-    """Summary of WCAG contrast compliance for a color pair.
 
-    Args:
-        ratio: WCAG contrast ratio between the two colors.
-        aa: True if the pair meets AA for normal text.
-        aaa: True if the pair meets AAA for normal text.
-        aa_large: True if the pair meets AA for large text.
-        aaa_large: True if the pair meets AAA for large text.
-    """
+class WcagReport(NamedTuple):
+    """Summary of WCAG contrast compliance for a color pair."""
 
     ratio: float
     aa: bool
@@ -35,17 +28,21 @@ class WcagReport(NamedTuple):
     aa_large: bool
     aaa_large: bool
 
-class NameMatch(NamedTuple):
-    """Result of a reverse color-name lookup.
 
-    Args:
-        name: CSS color name (e.g. ``"steelblue"``).
-        hex: Hex value of the named color (e.g. ``"#4682b4"``).
-        distance: Distance between input and matched color (0.0 = exact match).
-        exact: True when distance is 0.0.
-    """
+class NameMatch(NamedTuple):
+    """Result of a reverse color-name lookup."""
 
     name: str
     hex: str
     distance: float
     exact: bool
+
+
+class ColorClass(NamedTuple):
+    """Computed color classification."""
+
+    family: str
+    tone: str
+    chroma: str
+    lightness: float
+    hue: float
