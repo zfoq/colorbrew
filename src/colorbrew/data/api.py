@@ -290,34 +290,6 @@ def get_palette(
     raise ColorValueError(f"Unknown palette source: {source!r}")
 
 
-def get_palette_entries(
-    name: str,
-    *,
-    version: str | None = None,
-    source: str = "bundled",
-    allow_network: bool = False,
-    allow_cache: bool = False,
-    cache_dir: str | Path | None = None,
-    url: str | None = None,
-    timeout: float = 5.0,
-) -> dict[str, str]:
-    """Load a palette and return its entries as a plain dict.
-
-    This helper preserves the pre-0.10.0 ``get_palette`` return type for
-    callers that need a ``dict[str, str]`` instead of a :class:`Palette`.
-    """
-    return get_palette(
-        name,
-        version=version,
-        source=source,
-        allow_network=allow_network,
-        allow_cache=allow_cache,
-        cache_dir=cache_dir,
-        url=url,
-        timeout=timeout,
-    ).as_dict()
-
-
 def refresh_palette(
     name: str,
     *,

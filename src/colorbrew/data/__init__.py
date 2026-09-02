@@ -2,7 +2,6 @@
 
 from colorbrew.data.api import (
     get_palette,
-    get_palette_entries,
     list_palettes,
     refresh_palette,
 )
@@ -15,7 +14,6 @@ from colorbrew.data.models import Palette
 
 __all__ = [
     "get_palette",
-    "get_palette_entries",
     "list_palettes",
     "refresh_palette",
     "Palette",

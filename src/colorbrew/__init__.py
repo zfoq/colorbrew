@@ -28,7 +28,6 @@ from colorbrew.conversion.converters import (
 from colorbrew.data import (
     Palette,
     get_palette,
-    get_palette_entries,
     list_palettes,
     refresh_palette,
 )
@@ -58,7 +57,6 @@ __all__ = [
     "delta_e_76",
     "delta_e_2000",
     "get_palette",
-    "get_palette_entries",
     "hex_to_rgb",
     "hsl_to_rgb",
     "hsv_to_rgb",

@@ -11,7 +11,6 @@ import pytest
 from colorbrew.data import (
     Palette,
     get_palette,
-    get_palette_entries,
     list_palettes,
     refresh_palette,
 )
@@ -56,12 +55,6 @@ class TestPaletteApi:
         assert palette.source == "bundled"
         assert isinstance(palette.version, str)
         assert palette.entries["sky-500"] == "#0ea5e9"
-
-    def test_get_palette_entries_returns_plain_dict(self):
-        """Compatibility helper returns old dict entries."""
-        entries = get_palette_entries("tailwind")
-        assert isinstance(entries, dict)
-        assert entries["sky-500"] == "#0ea5e9"
 
     def test_get_palette_acts_like_a_mapping(self):
         """Palette supports subscript, membership, and iteration."""
