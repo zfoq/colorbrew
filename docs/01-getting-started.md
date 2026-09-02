@@ -9,7 +9,6 @@ Install ColorBrew, import the public API, and use bundled color systems without 
 '#336699'
 >>> brand.lighten(10).hex
 '#4080bf'
-
 ```
 
 ## Install and import
@@ -24,7 +23,6 @@ ColorBrew requires Python 3.10+ and has no runtime dependencies. Most code start
 >>> from colorbrew import Color, Palette, Theme
 >>> Color("cornflowerblue").hex
 '#6495ed'
-
 ```
 
 ## Color
@@ -39,7 +37,6 @@ Use `Color` for one parsed, converted, transformed, named, or classified color:
 'blue'
 >>> sky.meets_aa(Color("white"))
 False
-
 ```
 
 ## Palette
@@ -54,7 +51,6 @@ Use `Palette` for ordered swatches, registered systems, and batch transforms:
 ('#4080bf', '#ffe033', '#d6ad5c')
 >>> Palette.from_system("material")["blue-600"].hex
 '#1e88e5'
-
 ```
 
 ColorBrewer palettes are bundled too:
@@ -62,7 +58,6 @@ ColorBrewer palettes are bundled too:
 ```pycon
 >>> get_palette("colorbrewer:blues-3").hexes
 ('#deebf7', '#9ecae1', '#3182bd')
-
 ```
 
 ## Theme
@@ -75,7 +70,6 @@ Use `Theme` for semantic UI roles and CSS custom properties:
 '#336699'
 >>> theme.to_css_vars()
 '--cb-primary: #336699;\n--cb-text: #ffffff;'
-
 ```
 
 ## Included systems and offline fetching
@@ -85,7 +79,6 @@ Bundled systems are available offline: CSS named colors, Tailwind CSS, Material 
 ```pycon
 >>> list_systems()
 ('css', 'tailwind', 'material', 'colorbrewer')
-
 ```
 
 Normal palette loading is offline by default. Remote fetching requires an API source and `allow_network=True`.
@@ -98,5 +91,4 @@ Normal palette loading is offline by default. Remote fetching requires an API so
 >>> with settings_context(allow_network=False):
 ...     get_palette("colorbrewer:blues-3").source
 'bundled'
-
 ```
