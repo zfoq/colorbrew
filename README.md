@@ -65,19 +65,16 @@ c = Color("hsla(204, 70%, 53%, 0.5)")
 # From CSS named colors
 c = Color("cornflowerblue")
 
+# From registered color systems
+c = Color.named("tailwind:sky-500")
+c = Color.named("blue-600", system="material")
+
 # From other color spaces
 c = Color.from_hsl(204, 70, 53)
 c = Color.from_hsv(204, 76, 86)
 c = Color.from_cmyk(76, 31, 0, 14)
 c = Color.from_lab(61.0, -3.4, -38.3)
-
-# From built-in palettes
-c = Color.from_tailwind("sky-500")
-c = Color.from_material("blue-600")
-c = Color.from_name("steelblue")
-
-# Optional remote/cache-backed palette loading
-c = Color.from_tailwind("sky-500", source="auto", allow_cache=True)
+c = Color.from_oklch(0.62, 0.14, 250)
 
 # Random
 c = Color.random()
@@ -276,93 +273,43 @@ Palettes also support set-style union:
 Palette(["red", "green"]) | Palette(["green", "blue"])
 ```
 
-### Reverse Name Lookup
+### Names, Classification, and Systems
 
-Find the closest named color from built-in palettes:
-
-```python
-match = Color("#3498db").closest_name()
-match.name       # "dodgerblue"
-match.hex        # "#1e90ff"
-match.distance   # 42.94
-match.exact      # False
-
-# Tailwind and Material Design lookups
-Color("#3498db").closest_tailwind()    # NameMatch("sky-500", ...)
-Color("#3498db").closest_material()    # NameMatch("blue-400", ...)
-
-# Custom palette lookup
-palette = {"brand": "#3498db", "accent": "#e74c3c"}
-Color("#338fd8").nearest_palette(palette)  # NameMatch("brand", ...)
-
-# Use perceptual distance for better accuracy
-Color("#3498db").closest_name(method="ciede2000")
-```
-
-Available palettes: 148 CSS named colors, 242 Tailwind CSS colors, 190 Material Design colors.
-
-### Optional Palette API and Cache
-
-All bundled palette tables live as packaged JSON resources loaded through a
-single loader module, so the per-palette Python modules stay as thin
-compatibility re-exports. Bundled data remains the
-default and keeps normal usage fully offline. Network access and disk cache are
-opt-in, and remote reads only happen when you pass `allow_network=True`:
+Find registered names and perceptual classes:
 
 ```python
-from colorbrew import get_palette, get_palette_entries, list_palettes, refresh_palette
+from colorbrew import Color, Palette, Theme, configure, get_palette, list_systems
 
-list_palettes()                     # ('named', 'tailwind', 'material')
-palette = get_palette("tailwind")   # Palette object with metadata
-palette.family                      # 'tailwind'
-palette.source                      # 'bundled'
-palette.source_version              # 'v3' — stable bundled version
-palette.entries["sky-500"]         # '#0ea5e9'
+Color("#336699").names()       # nearest names in registered flat systems
+Color("#336699").classify()    # ColorClass(family='azure', tone='muted-dark', ...)
 
-# Palette behaves like a read-only mapping, so existing subscript/iteration code works
-palette["sky-500"]                 # '#0ea5e9'
-"sky-500" in palette               # True
-
-# Backward-compatibility helper for the old dict[str, str] return type
-get_palette_entries("tailwind")["sky-500"]  # '#0ea5e9'
-
-# Version selection (default is the stable bundled version)
-get_palette("tailwind")                       # bundled Tailwind CSS v3
-get_palette("tailwind", version="v3")         # explicit bundled v3
-get_palette("tailwind@v3")                    # version pinned in the name
-get_palette("tailwind", version="v4",
-            source="api", allow_network=True)  # upstream Tailwind CSS v4
-get_palette("material")                       # bundled Material Design v2
-get_palette("material", version="v3",
-            source="api", allow_network=True)  # upstream Material Design v3
-
-get_palette("tailwind", source="auto", allow_cache=True)  # cache -> bundled
-
-# Opt into remote JSON + optional cache write
-refresh_palette("tailwind", url="https://example.com/tailwind.json")
-get_palette(
-    "tailwind",
-    source="api",
-    allow_network=True,
-    allow_cache=True,
-    url="https://example.com/tailwind.json",
-)
+Color.named("tailwind:sky-500")
+Color.named("blue-600", system="material")
 ```
 
-`get_palette` returns a `Palette` object with `family`, `version`, `source`,
-`source_version`, and `entries` metadata. `source_version` is the palette version
-selected by the caller (e.g. `v3` or `v4`), while `version` is either the package
-version for bundled data or `"upstream"` for API/cache sources.
-`get_palette_entries` returns the same data as a plain `dict[str, str]` for code
-that predates the `Palette` type.
+Registered systems include CSS named colors, Tailwind CSS, Material Design, and ColorBrewer:
 
-The default source is `"bundled"`, so normal usage stays fully offline. Each
-family has a stable default version (`tailwind` → `v3`, `material` → `v2`).
-Other versions are fetched from upstream only when you pass `source="api"` (or
-`source="auto"`) together with `allow_network=True`.
+```python
+list_systems()                         # ('css', 'tailwind', 'material', 'colorbrewer')
+Palette.from_system("tailwind")["sky-500"]
+Palette(["#336699", "#cc9933"]).to_system("material")
+get_palette("colorbrewer:blues-3").hexes
+```
 
-`source="auto"` tries API first only when `allow_network=True`, then cache only when
-`allow_cache=True`, and finally falls back to the bundled data.
+A `Theme` is a role-keyed palette for design tokens:
+
+```python
+theme = Theme.from_color("#336699", scheme="triadic")
+theme.primary.hex                       # '#336699'
+theme.to_css_vars()                     # '--cb-primary: #336699;\n...'
+```
+
+Bundled data is the default. Optional remote palette loading stays off until you opt in:
+
+```python
+configure(allow_network=True)
+get_palette("tailwind", version="v4", source="api", allow_cache=True)
+```
 
 ---
 
