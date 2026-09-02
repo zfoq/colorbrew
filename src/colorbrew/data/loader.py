@@ -1,4 +1,8 @@
-"""Single loader for all bundled palette JSON resources."""
+"""Loader for bundled ColorBrewer palettes.
+
+Flat palette data (CSS, Tailwind, Material) lives in its own module and
+is re-exported here only for convenience.
+"""
 
 from __future__ import annotations
 
@@ -6,19 +10,15 @@ import json
 from importlib import resources
 from typing import TypeAlias
 
+from colorbrew.data.material_colors import MATERIAL_COLORS
+from colorbrew.data.named_colors import NAMED_COLORS
+from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 from colorbrew.exceptions import PaletteError
 
 ColorBrewerColors: TypeAlias = dict[str, dict[str, list[str]]]
 
 
 _RESOURCE_PACKAGE = "colorbrew.data.resources"
-
-
-def _load_palette(name: str) -> dict[str, str]:
-    """Load a bundled palette JSON resource by file stem."""
-    return json.loads(
-        resources.files(_RESOURCE_PACKAGE).joinpath(f"{name}_colors.json").read_text()
-    )
 
 
 def _invalid_colorbrewer_data() -> PaletteError:
@@ -63,10 +63,6 @@ def load_colorbrewer_colors() -> ColorBrewerColors:
         _COLORBREWER_COLORS = _validate_colorbrewer_colors(data)
     return _COLORBREWER_COLORS
 
-
-NAMED_COLORS: dict[str, str] = _load_palette("named")
-TAILWIND_COLORS: dict[str, str] = _load_palette("tailwind")
-MATERIAL_COLORS: dict[str, str] = _load_palette("material")
 
 __all__ = [
     "ColorBrewerColors",

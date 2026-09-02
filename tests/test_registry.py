@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from types import MappingProxyType
 
 import pytest
@@ -19,23 +20,37 @@ def test_registry_exposes_frozen_system_records() -> None:
     assert list_systems()[:4] == ("css", "tailwind", "material", "colorbrewer")
     record = get_system("tailwind")
     assert isinstance(record, SystemRecord)
-    assert record.default_version == "v3"
-    assert isinstance(record.palettes, MappingProxyType)
+    assert record.version == "v3"
+    assert record.source == "bundled"
+    assert isinstance(record.entries, Callable)
+    assert isinstance(record.palettes, Callable)
+    assert isinstance(record.entries(), MappingProxyType)
+    assert isinstance(record.palettes(), MappingProxyType)
 
     with pytest.raises(Exception):
         record.name = "changed"  # type: ignore[misc]
     with pytest.raises(TypeError):
-        record.palettes["v3"] = {}  # type: ignore[index]
+        record.entries()["v3"] = {}  # type: ignore[index]
 
 
 def test_registry_resolves_names_and_registers_custom_systems() -> None:
     record = register_system(
         "Example",
-        default_version="V1",
-        palettes={"V1": {"brand": "#123456"}},
+        version="V1",
+        entries={"brand": "#123456"},
+        palettes={
+            "V1": Palette.from_mapping(
+                {"brand": "#123456"},
+                kind="system",
+                system="example",
+                version="v1",
+                source="custom",
+            ),
+        },
     )
 
     assert record.name == "example"
+    assert record.version == "v1"
     assert resolve_name("example@V1") == ("example", "v1")
     assert "example" in list_systems()
     assert list_palettes("example") == ("example", "example@v1")
@@ -47,7 +62,7 @@ def test_registry_colorbrewer_scheme_count_palettes_and_lazy_palette_import() ->
 
     assert isinstance(palette, Palette)
     assert palette.hexes == ("#deebf7", "#9ecae1", "#3182bd")
-    assert "colorbrewer:Blues-3" in list_palettes("colorbrewer")
+    assert "colorbrewer:blues-3" in list_palettes("colorbrewer")
 
 
 def test_registry_rejects_unknown_values() -> None:

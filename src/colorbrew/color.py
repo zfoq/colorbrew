@@ -62,7 +62,7 @@ def _system_has_names(system: str) -> bool:
         record = _registry.get_system(system)
     except ColorValueError:
         return False
-    return bool(record.palettes)
+    return bool(record.entries())
 
 
 class Color:
@@ -279,7 +279,7 @@ class Color:
             system_name, _, color_name = name.partition(":")
             return cls._lookup_named(color_name, system_name)
 
-        for system_name in ("css", "tailwind", "material"):
+        for system_name in ("css", "tailwind", "material", "colorbrewer"):
             try:
                 return cls._lookup_named(name, system_name)
             except ColorParseError:
@@ -290,11 +290,12 @@ class Color:
     @classmethod
     def _lookup_named(cls, name: str, system: str) -> Color:
         """Resolve a single named color from a registered system."""
-        palette = _registry.get_palette(system)
+        record = _registry.get_system(system)
+        entries = record.entries()
         lower = name.lower().strip()
-        if lower not in palette:
+        if lower not in entries:
             raise ColorParseError(f"Unknown color name: {name!r} in system {system!r}")
-        return _new(_conv.hex_to_rgb(palette[lower]))
+        return _new(_conv.hex_to_rgb(entries[lower]))
 
     @classmethod
     def from_kelvin(cls, kelvin: int) -> Color:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
-from colorbrew.data.loader import MATERIAL_COLORS
+from colorbrew.data.resources import load_palette_json
+
+MATERIAL_COLORS: dict[str, str] = load_palette_json("material")
 
 __all__ = ["MATERIAL_COLORS"]

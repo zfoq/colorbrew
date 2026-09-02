@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
-from colorbrew.data.loader import (
-    MATERIAL_COLORS,
-    NAMED_COLORS,
-    TAILWIND_COLORS,
-    ColorBrewerColors,
-    load_colorbrewer_colors,
-)
+from colorbrew.data.loader import load_colorbrewer_colors
+from colorbrew.data.material_colors import MATERIAL_COLORS
+from colorbrew.data.named_colors import NAMED_COLORS
+from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 from colorbrew.exceptions import ColorValueError
 
 
@@ -21,9 +18,14 @@ class SystemRecord:
     """Registered color system metadata and palettes."""
 
     name: str
-    default_version: str
-    palettes: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
-    colorbrewer_palettes: ColorBrewerColors = field(default_factory=dict)
+    version: str | None
+    entries: Callable[[], Mapping[str, str]] = field(
+        default_factory=lambda: lambda: MappingProxyType({})
+    )
+    palettes: Callable[[], Mapping[str, object]] = field(
+        default_factory=lambda: lambda: MappingProxyType({})
+    )
+    source: str = "custom"
 
 
 _SYSTEMS: dict[str, SystemRecord] = {}
@@ -43,39 +45,56 @@ def _normalize_version(version: str) -> str:
     return normalized
 
 
-def _freeze_palettes(palettes: Mapping[str, Mapping[str, str]]) -> Mapping[str, Mapping[str, str]]:
-    return MappingProxyType(
-        {
-            _normalize_version(version): MappingProxyType(dict(colors))
-            for version, colors in palettes.items()
-        }
+def _normalize_palette_key(key: str) -> str:
+    return key.strip().lower()
+
+
+def _freeze_entries(
+    entries: Mapping[str, str] | Callable[[], Mapping[str, str]],
+) -> Callable[[], Mapping[str, str]]:
+    if callable(entries):
+
+        def _wrapped() -> Mapping[str, str]:
+            return MappingProxyType(dict(entries()))
+
+        return _wrapped
+    frozen = MappingProxyType(dict(entries))
+    return lambda: frozen
+
+
+def _freeze_palettes(
+    palettes: Mapping[str, object] | Callable[[], Mapping[str, object]],
+) -> Callable[[], Mapping[str, object]]:
+    if callable(palettes):
+
+        def _wrapped() -> Mapping[str, object]:
+            return MappingProxyType(
+                {_normalize_palette_key(k): v for k, v in palettes().items()}
+            )
+
+        return _wrapped
+    frozen = MappingProxyType(
+        {_normalize_palette_key(k): v for k, v in palettes.items()}
     )
-
-
-def _freeze_colorbrewer(colors: ColorBrewerColors) -> ColorBrewerColors:
-    return MappingProxyType(
-        {
-            scheme: MappingProxyType({size: tuple(hexes) for size, hexes in sizes.items()})
-            for scheme, sizes in colors.items()
-        }
-    )  # type: ignore[return-value]
+    return lambda: frozen
 
 
 def register_system(
     name: str,
     *,
-    default_version: str,
-    palettes: Mapping[str, Mapping[str, str]] | None = None,
-    colorbrewer_palettes: ColorBrewerColors | None = None,
+    version: str | None = None,
+    entries: Mapping[str, str] | Callable[[], Mapping[str, str]] | None = None,
+    palettes: Mapping[str, object] | Callable[[], Mapping[str, object]] | None = None,
+    source: str = "custom",
 ) -> SystemRecord:
     """Register or replace a color system at runtime."""
     system_name = _normalize_name(name)
-    version = _normalize_version(default_version)
     record = SystemRecord(
         name=system_name,
-        default_version=version,
+        version=_normalize_version(version) if version is not None else None,
+        entries=_freeze_entries(entries or {}),
         palettes=_freeze_palettes(palettes or {}),
-        colorbrewer_palettes=_freeze_colorbrewer(colorbrewer_palettes or {}),
+        source=source.strip().lower(),
     )
     _SYSTEMS[system_name] = record
     return record
@@ -106,58 +125,129 @@ def list_palettes(system: str | None = None) -> tuple[str, ...]:
     """Return available palette names."""
     if system is not None:
         record = get_system(system)
-        names = [record.name]
-        names.extend(f"{record.name}@{version}" for version in record.palettes)
-        names.extend(
-            f"{record.name}:{scheme}-{size}"
-            for scheme, sizes in record.colorbrewer_palettes.items()
-            for size in sizes
-        )
+        names = []
+        for key in record.palettes():
+            if key == record.version:
+                names.append(record.name)
+                names.append(f"{record.name}@{key}")
+            else:
+                names.append(f"{record.name}:{key}")
         return tuple(dict.fromkeys(names))
     return tuple(name for system_name in list_systems() for name in list_palettes(system_name))
 
 
 def get_palette(name: str):
     """Return a Palette from a registered system."""
-    from colorbrew.palette import Palette
-
-    family, _, variant = name.partition(":")
-    system, version = resolve_name(family)
-    record = get_system(system)
-    if variant:
-        scheme, _, size = variant.rpartition("-")
+    family, sep, key = name.partition(":")
+    if sep:
+        record = get_system(family)
+        palettes = record.palettes()
+        lookup_key = _normalize_palette_key(key)
         try:
-            return Palette.from_hexes(
-                record.colorbrewer_palettes[scheme][size],
-                kind="system",
-                system=system,
-                version=size,
-                source="bundled",
-            )
+            return palettes[lookup_key]
         except KeyError as exc:
             raise ColorValueError(f"Unknown palette: {name!r}") from exc
 
-    palette_version = version or record.default_version
+    system, _, version = family.partition("@")
+    record = get_system(system)
+    palettes = record.palettes()
+    if version:
+        lookup_key = _normalize_palette_key(version)
+    elif record.version is not None:
+        lookup_key = record.version
+    else:
+        raise ColorValueError(f"No default palette for system: {name!r}")
     try:
-        colors = record.palettes[palette_version]
+        return palettes[lookup_key]
     except KeyError as exc:
-        raise ColorValueError(f"Palette version is not available bundled: {name!r}") from exc
-    return Palette.from_mapping(
-        colors,
-        kind="system",
-        system=system,
-        version=palette_version,
-        source="bundled",
-    )
+        raise ColorValueError(f"Unknown palette: {name!r}") from exc
 
 
-register_system("css", default_version="v1", palettes={"v1": NAMED_COLORS})
-register_system("tailwind", default_version="v3", palettes={"v3": TAILWIND_COLORS})
-register_system("material", default_version="v2", palettes={"v2": MATERIAL_COLORS})
+def _css_palettes() -> dict[str, object]:
+    from colorbrew.palette import Palette
+
+    return {
+        "v1": Palette.from_mapping(
+            NAMED_COLORS,
+            kind="system",
+            system="css",
+            version="v1",
+            source="bundled",
+        ),
+    }
+
+
+def _tailwind_palettes() -> dict[str, object]:
+    from colorbrew.palette import Palette
+
+    return {
+        "v3": Palette.from_mapping(
+            TAILWIND_COLORS,
+            kind="system",
+            system="tailwind",
+            version="v3",
+            source="bundled",
+        ),
+    }
+
+
+def _material_palettes() -> dict[str, object]:
+    from colorbrew.palette import Palette
+
+    return {
+        "v2": Palette.from_mapping(
+            MATERIAL_COLORS,
+            kind="system",
+            system="material",
+            version="v2",
+            source="bundled",
+        ),
+    }
+
+
+def _colorbrewer_palettes() -> dict[str, object]:
+    from colorbrew.palette import Palette
+
+    return {
+        f"{scheme}-{size}": Palette.from_hexes(
+            hexes,
+            kind="system",
+            system="colorbrewer",
+            version=size,
+            source="bundled",
+        )
+        for scheme, sizes in load_colorbrewer_colors().items()
+        for size, hexes in sizes.items()
+    }
+
+
+register_system(
+    "css",
+    version="v1",
+    entries=NAMED_COLORS,
+    palettes=_css_palettes,
+    source="bundled",
+)
+register_system(
+    "tailwind",
+    version="v3",
+    entries=TAILWIND_COLORS,
+    palettes=_tailwind_palettes,
+    source="bundled",
+)
+register_system(
+    "material",
+    version="v2",
+    entries=MATERIAL_COLORS,
+    palettes=_material_palettes,
+    source="bundled",
+)
 register_system(
     "colorbrewer",
-    default_version="bundled",
-    colorbrewer_palettes=load_colorbrewer_colors(),
+    version=None,
+    entries={},
+    palettes=_colorbrewer_palettes,
+    source="bundled",
 )
 
 __all__ = [

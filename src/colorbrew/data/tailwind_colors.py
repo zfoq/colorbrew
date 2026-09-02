@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
-from colorbrew.data.loader import TAILWIND_COLORS
+from colorbrew.data.resources import load_palette_json
+
+TAILWIND_COLORS: dict[str, str] = load_palette_json("tailwind")
 
 __all__ = ["TAILWIND_COLORS"]
