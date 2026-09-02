@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import math
+import re
 
 from colorbrew.conversion.gamma import delinearize, linearize
+
+_OKLCH_CSS_RE = re.compile(
+    r"^\s*oklch\(\s*([0-9.]+%?)\s+([0-9.]+)\s+([0-9.]+)(?:\s*/\s*[0-9.]+%?)?\s*\)\s*$",
+    re.IGNORECASE,
+)
 
 
 def _check_rgb_channel(channel: int) -> None:
@@ -86,3 +92,20 @@ def rgb_to_oklch(r: int, g: int, b: int) -> tuple[float, float, float]:
 def oklch_to_rgb(l: float, c: float, h: float) -> tuple[int, int, int]:
     """Convert OKLCH ``(L, C, h)`` to clamped sRGB channels."""
     return oklab_to_rgb(*oklch_to_oklab(l, c, h))
+
+
+def oklch_css_to_rgb(value: str) -> tuple[int, int, int]:
+    """Parse a CSS ``oklch(...)`` string and return clamped sRGB channels.
+
+    Supports lightness as a percentage (``63.7%``) or a 0-1 scalar,
+    plus optional alpha separated by a slash.
+    """
+    match = _OKLCH_CSS_RE.match(value)
+    if match is None:
+        raise ValueError(f"Invalid OKLCH CSS value: {value!r}")
+    l_str, c_str, h_str = match.groups()
+    if l_str.endswith("%"):
+        l = float(l_str[:-1]) / 100.0
+    else:
+        l = float(l_str)
+    return oklch_to_rgb(l, float(c_str), float(h_str))

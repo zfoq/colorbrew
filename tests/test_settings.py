@@ -19,8 +19,9 @@ def test_settings_defaults_use_platform_cache_dir() -> None:
     assert settings.allow_network is False
     assert settings.allow_cache is True
     assert settings.cache_dir.name == "colorbrew"
-    assert settings.cache_ttl == 86_400.0
+    assert settings.cache_ttl == 604_800.0
     assert settings.timeout == 5.0
+    assert settings.default_distance == "ciede2000"
 
 
 def test_configure_updates_settings_and_context_restores() -> None:

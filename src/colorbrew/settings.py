@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Iterator
 
 from colorbrew.exceptions import ColorValueError
+from colorbrew.types import DistanceMethod
 
 _TRUE = {"1", "true", "yes", "on"}
 _FALSE = {"0", "false", "no", "off"}
@@ -55,8 +56,9 @@ class Settings:
     allow_network: bool = False
     allow_cache: bool = True
     cache_dir: Path = _default_cache_dir()
-    cache_ttl: float = 86_400.0
+    cache_ttl: float = 604_800.0
     timeout: float = 5.0
+    default_distance: DistanceMethod = "ciede2000"
 
 
 def _from_env() -> Settings:
@@ -64,7 +66,7 @@ def _from_env() -> Settings:
         allow_network=_env_bool("COLORBREW_ALLOW_NETWORK", False),
         allow_cache=_env_bool("COLORBREW_ALLOW_CACHE", True),
         cache_dir=Path(os.getenv("COLORBREW_CACHE_DIR", _default_cache_dir())),
-        cache_ttl=_env_float("COLORBREW_CACHE_TTL", 86_400.0),
+        cache_ttl=_env_float("COLORBREW_CACHE_TTL", 604_800.0),
         timeout=_env_float("COLORBREW_TIMEOUT", 5.0),
     )
 

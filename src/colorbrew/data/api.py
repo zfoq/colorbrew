@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import re
-import tempfile
+import time
 from importlib.metadata import version as _package_version
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
+from colorbrew.conversion.oklab import oklch_css_to_rgb
 from colorbrew.data.loader import (
     MATERIAL_COLORS,
     NAMED_COLORS,
@@ -16,10 +18,15 @@ from colorbrew.data.loader import (
 )
 from colorbrew.exceptions import ColorValueError
 from colorbrew.palette import Palette
+from colorbrew.settings import Settings, get_settings
 
 _PACKAGE_VERSION = _package_version("colorbrew")
 
 _HEX_RE = re.compile(r"^#[0-9a-f]{6}$")
+_CSS_VAR_RE = re.compile(
+    r"--([a-zA-Z0-9_-]+):\s*(#[0-9a-f]{6}|oklch\([^)]+\))\s*;",
+    re.IGNORECASE,
+)
 
 _DEFAULT_VERSIONS: dict[str, str] = {
     "named": "v1",
@@ -49,7 +56,7 @@ _PALETTE_URLS: dict[str, str] = {
     ),
     "tailwind@v4": (
         "https://raw.githubusercontent.com/tailwindlabs/tailwindcss/"
-        "v4.0.0/packages/tailwindcss/src/theme.css"
+        "v4.0.0/packages/tailwindcss/theme.css"
     ),
     "material@v3": (
         "https://raw.githubusercontent.com/material-foundation/material-tokens/"
@@ -58,13 +65,13 @@ _PALETTE_URLS: dict[str, str] = {
 }
 
 
-def _cache_file(name: str, cache_dir: str | Path | None) -> Path:
-    base = (
-        Path(cache_dir)
-        if cache_dir is not None
-        else Path(tempfile.gettempdir()) / "colorbrew-palettes"
-    )
+def _cache_file(name: str, cache_dir: Path | None) -> Path:
+    base = cache_dir if cache_dir is not None else get_settings().cache_dir
     return base / f"{name}.json"
+
+
+def _cache_key(family: str, version: str) -> str:
+    return f"{family}-{version}"
 
 
 def _normalize_palette(palette: object) -> dict[str, str]:
@@ -102,24 +109,62 @@ def _normalize_palette(palette: object) -> dict[str, str]:
     return normalized
 
 
+def _parse_css_palette(text: str) -> dict[str, str]:
+    normalized: dict[str, str] = {}
+    for name, value in _CSS_VAR_RE.findall(text):
+        key = name.strip().lower()
+        value = value.strip().lower()
+        if value.startswith("#"):
+            hex_value = value
+        else:
+            try:
+                rgb = oklch_css_to_rgb(value)
+            except ValueError as exc:
+                raise ColorValueError(f"Invalid OKLCH value for {key!r}: {value!r}") from exc
+            hex_value = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+        if not _HEX_RE.match(hex_value):
+            raise ColorValueError(f"Invalid hex color for {key!r}: {value!r}")
+        normalized[key] = hex_value
+    if not normalized:
+        raise ColorValueError("No color custom properties found in CSS payload.")
+    return normalized
+
+
 def _fetch_palette(url: str, timeout: float) -> dict[str, str]:
-    with urlopen(url, timeout=timeout) as response:  # nosec: caller opts into network access
-        data = json.load(response)
+    try:
+        with urlopen(url, timeout=timeout) as response:  # nosec: caller opts into network access
+            payload = response.read().decode("utf-8")
+    except HTTPError as exc:
+        raise ColorValueError(f"Remote palette request failed for {url!r}: {exc}") from exc
+    except OSError as exc:
+        raise ColorValueError(f"Remote palette request failed for {url!r}: {exc}") from exc
+
+    try:
+        data = json.loads(payload)
+    except json.JSONDecodeError:
+        return _parse_css_palette(payload)
     return _normalize_palette(data)
 
 
-def _load_cached_palette(name: str, cache_dir: str | Path | None) -> dict[str, str]:
-    return _normalize_palette(json.loads(_cache_file(name, cache_dir).read_text()))
+def _load_cached_palette(name: str, cache_dir: Path | None) -> dict[str, str]:
+    path = _cache_file(name, cache_dir)
+    return _normalize_palette(json.loads(path.read_text()))
+
+
+def _is_cache_fresh(path: Path, cache_ttl: float) -> bool:
+    if not path.exists():
+        return False
+    return (time.time() - path.stat().st_mtime) <= cache_ttl
 
 
 def _write_cached_palette(
     name: str,
     palette: dict[str, str],
-    cache_dir: str | Path | None,
+    cache_dir: Path | None,
 ) -> None:
     path = _cache_file(name, cache_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
+    tmp = path.with_suffix(f".tmp.{_PACKAGE_VERSION}")
     tmp.write_text(json.dumps(palette, sort_keys=True, indent=2) + "\n")
     tmp.replace(path)
 
@@ -131,12 +176,6 @@ def list_palettes() -> tuple[str, ...]:
 
 def _palette_key(family: str, version: str) -> str:
     return f"{family}@{version}"
-
-
-def _cache_key(family: str, version: str) -> str:
-    if version == _DEFAULT_VERSIONS.get(family):
-        return family
-    return _palette_key(family, version)
 
 
 def _parse_palette_name(name: str) -> tuple[str, str | None]:
@@ -170,16 +209,35 @@ def _validate_source(source: str) -> str:
     return source_name
 
 
+def _resolve_settings(
+    allow_network: bool | None,
+    allow_cache: bool | None,
+    cache_dir: str | Path | None,
+    cache_ttl: float | None,
+    timeout: float | None,
+) -> Settings:
+    settings = get_settings()
+    return Settings(
+        allow_network=settings.allow_network if allow_network is None else allow_network,
+        allow_cache=settings.allow_cache if allow_cache is None else allow_cache,
+        cache_dir=Path(cache_dir) if cache_dir is not None else settings.cache_dir,
+        cache_ttl=settings.cache_ttl if cache_ttl is None else cache_ttl,
+        timeout=settings.timeout if timeout is None else timeout,
+        default_distance=settings.default_distance,
+    )
+
+
 def get_palette(
     name: str,
     *,
     version: str | None = None,
     source: str = "bundled",
-    allow_network: bool = False,
-    allow_cache: bool = False,
+    allow_network: bool | None = None,
+    allow_cache: bool | None = None,
     cache_dir: str | Path | None = None,
+    cache_ttl: float | None = None,
     url: str | None = None,
-    timeout: float = 5.0,
+    timeout: float | None = None,
 ) -> Palette:
     """Load a palette from bundled data, cache, or an opt-in URL.
 
@@ -190,18 +248,23 @@ def get_palette(
             Defaults to the family's stable bundled version.
         source: ``"bundled"``, ``"cache"``, ``"api"``, or ``"auto"``.
         allow_network: Permit network fetches for ``"api"`` or ``"auto"``.
+            Defaults to the global :class:`Settings` value.
         allow_cache: Permit disk cache reads/writes for ``"cache"``, ``"api"``, or ``"auto"``.
+            Defaults to the global :class:`Settings` value.
         cache_dir: Optional cache directory override.
-        url: Optional JSON URL override for remote fetches.
+        cache_ttl: Optional cache time-to-live override in seconds.
+        url: Optional JSON or CSS URL override for remote fetches.
         timeout: Network timeout in seconds.
 
     Returns:
-        A :class:`Palette` with ``family``, ``version``, ``source``,
-        ``source_version``, and ``entries`` metadata.
+        A :class:`Palette` with ``system``, ``version``, and ``source`` metadata.
 
     Raises:
         ColorValueError: If the palette name/version/source is unknown or access is disabled.
     """
+    resolved = _resolve_settings(
+        allow_network, allow_cache, cache_dir, cache_ttl, timeout
+    )
     palette_name, parsed_version = _validate_palette_name(name)
     palette_version = (
         _validate_palette_version(palette_name, version.strip().lower())
@@ -210,6 +273,7 @@ def get_palette(
     )
     source_name = _validate_source(source)
     key = _palette_key(palette_name, palette_version)
+    cache_key = _cache_key(palette_name, palette_version)
 
     if source_name == "bundled":
         if key not in _BUNDLED_PALETTES:
@@ -222,13 +286,11 @@ def get_palette(
             source="bundled",
         )
 
-    cache_key = _cache_key(palette_name, palette_version)
-
     if source_name == "cache":
-        if not allow_cache:
+        if not resolved.allow_cache:
             raise ColorValueError("Palette cache access is disabled.")
         return Palette.from_mapping(
-            _load_cached_palette(cache_key, cache_dir),
+            _load_cached_palette(cache_key, resolved.cache_dir),
             kind="system",
             system=palette_name,
             version=palette_version,
@@ -236,14 +298,14 @@ def get_palette(
         )
 
     if source_name == "api":
-        if not allow_network:
+        if not resolved.allow_network:
             raise ColorValueError("Palette network access is disabled.")
         palette_url = url or _PALETTE_URLS.get(key)
         if palette_url is None:
             raise ColorValueError(f"No remote source configured for palette: {key}")
-        entries = _fetch_palette(palette_url, timeout)
-        if allow_cache:
-            _write_cached_palette(cache_key, entries, cache_dir)
+        entries = _fetch_palette(palette_url, resolved.timeout)
+        if resolved.allow_cache:
+            _write_cached_palette(cache_key, entries, resolved.cache_dir)
         return Palette.from_mapping(
             entries,
             kind="system",
@@ -253,36 +315,43 @@ def get_palette(
         )
 
     if source_name == "auto":
-        if allow_network:
+        cache_path = _cache_file(cache_key, resolved.cache_dir)
+        if resolved.allow_cache and _is_cache_fresh(cache_path, resolved.cache_ttl):
+            return Palette.from_mapping(
+                _load_cached_palette(cache_key, resolved.cache_dir),
+                kind="system",
+                system=palette_name,
+                version=palette_version,
+                source="cache",
+            )
+        if resolved.allow_network:
             try:
-                return get_palette(
-                    palette_name,
+                palette_url = url or _PALETTE_URLS.get(key)
+                if palette_url is None:
+                    raise ColorValueError(
+                        f"No remote source configured for palette: {key}"
+                    )
+                entries = _fetch_palette(palette_url, resolved.timeout)
+                if resolved.allow_cache:
+                    _write_cached_palette(cache_key, entries, resolved.cache_dir)
+                return Palette.from_mapping(
+                    entries,
+                    kind="system",
+                    system=palette_name,
                     version=palette_version,
                     source="api",
-                    allow_network=True,
-                    allow_cache=allow_cache,
-                    cache_dir=cache_dir,
-                    url=url,
-                    timeout=timeout,
                 )
-            except OSError:
-                pass
-            except ColorValueError:
+            except (OSError, ColorValueError):
                 if url is not None:
                     raise
-        if allow_cache:
-            try:
-                return get_palette(
-                    palette_name,
-                    version=palette_version,
-                    source="cache",
-                    allow_cache=True,
-                    cache_dir=cache_dir,
-                )
-            except OSError:
-                pass
-        return get_palette(
-            palette_name,
+        if key not in _BUNDLED_PALETTES:
+            raise ColorValueError(
+                f"Palette version is not available bundled: {key!r}"
+            )
+        return Palette.from_mapping(
+            _BUNDLED_PALETTES[key],
+            kind="system",
+            system=palette_name,
             version=palette_version,
             source="bundled",
         )
@@ -296,10 +365,32 @@ def refresh_palette(
     url: str,
     version: str | None = None,
     cache_dir: str | Path | None = None,
+    cache_ttl: float | None = None,
     write_cache: bool = True,
-    timeout: float = 5.0,
+    timeout: float | None = None,
 ) -> Palette:
-    """Fetch a palette from a JSON API and optionally cache it."""
+    """Fetch a palette from a remote URL and optionally cache it.
+
+    Args:
+        name: Palette family name, optionally with ``@version``.
+        url: Remote JSON or CSS URL.
+        version: Optional explicit version.
+        cache_dir: Optional cache directory override.
+        cache_ttl: Optional cache TTL; only used when ``write_cache`` is true
+            to backfill the default for future ``source="auto"`` reads.
+        write_cache: Write the fetched palette to the cache directory.
+        timeout: Network timeout in seconds.
+
+    Returns:
+        A :class:`Palette` loaded from the remote source.
+    """
+    resolved = _resolve_settings(
+        allow_network=True,
+        allow_cache=write_cache,
+        cache_dir=cache_dir,
+        cache_ttl=cache_ttl,
+        timeout=timeout,
+    )
     palette_name, parsed_version = _validate_palette_name(name)
     palette_version = (
         _validate_palette_version(palette_name, version.strip().lower())
@@ -309,9 +400,9 @@ def refresh_palette(
     cache_key = _cache_key(palette_name, palette_version)
     if not url.strip():
         raise ColorValueError("Palette URL must not be empty.")
-    entries = _fetch_palette(url, timeout)
-    if write_cache:
-        _write_cached_palette(cache_key, entries, cache_dir)
+    entries = _fetch_palette(url, resolved.timeout)
+    if resolved.allow_cache:
+        _write_cached_palette(cache_key, entries, resolved.cache_dir)
     return Palette.from_mapping(
         entries,
         kind="system",
