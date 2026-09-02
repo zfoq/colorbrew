@@ -7,7 +7,9 @@ from colorbrew.exceptions import ColorValueError, PaletteError
 
 
 def test_palette_constructor_coerces_names_and_is_immutable():
-    palette = Palette([Color("red"), "#00ff00", (0, 0, 255)], names=[" Red ", None, "Blue"])
+    palette = Palette(
+        [Color("red"), "#00ff00", (0, 0, 255)], names=[" Red ", None, "Blue"]
+    )
 
     assert palette.hexes == ("#ff0000", "#00ff00", "#0000ff")
     assert palette.names == ("red", None, "blue")
@@ -49,11 +51,23 @@ def test_palette_set_ops_preserve_first_names():
 
 
 def test_palette_map_and_binary_operations_preserve_metadata_and_validate_lengths():
-    palette = Palette(["red", "blue"], names=["red", "blue"], kind="brand", system="x", version="1", source="test")
+    palette = Palette(
+        ["red", "blue"],
+        names=["red", "blue"],
+        kind="brand",
+        system="x",
+        version="1",
+        source="test",
+    )
 
     lighter = palette.lighten(5)
     assert lighter.names == palette.names
-    assert (lighter.kind, lighter.system, lighter.version, lighter.source) == ("brand", "x", "1", "test")
+    assert (lighter.kind, lighter.system, lighter.version, lighter.source) == (
+        "brand",
+        "x",
+        "1",
+        "test",
+    )
 
     mixed = palette.mix(Color("white"), 0.5)
     assert mixed.names == palette.names
@@ -72,7 +86,10 @@ def test_palette_aggregate_methods_and_system_mapping():
     assert (index, color) == (0, Color("red"))
     assert distance >= 0
     assert palette.sort("name").names == ("blue", "near-red", "red")
-    assert palette.dedupe(threshold=2, method="euclidean").hexes == ("#ff0000", "#0000ff")
+    assert palette.dedupe(threshold=2, method="euclidean").hexes == (
+        "#ff0000",
+        "#0000ff",
+    )
     assert isinstance(palette.is_colorblind_safe(), bool)
     assert len(palette.classify()) == 3
     assert palette.nearest_names("named")[0].name == "red"

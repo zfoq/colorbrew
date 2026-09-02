@@ -133,7 +133,9 @@ def list_palettes(system: str | None = None) -> tuple[str, ...]:
             else:
                 names.append(f"{record.name}:{key}")
         return tuple(dict.fromkeys(names))
-    return tuple(name for system_name in list_systems() for name in list_palettes(system_name))
+    return tuple(
+        name for system_name in list_systems() for name in list_palettes(system_name)
+    )
 
 
 def get_palette(name: str):

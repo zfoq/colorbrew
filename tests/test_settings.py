@@ -26,7 +26,9 @@ def test_settings_defaults_use_platform_cache_dir() -> None:
 
 def test_configure_updates_settings_and_context_restores() -> None:
     original = get_settings()
-    configured = configure(allow_network=True, cache_dir="/tmp/colorbrew-test", timeout=2.5)
+    configured = configure(
+        allow_network=True, cache_dir="/tmp/colorbrew-test", timeout=2.5
+    )
 
     assert configured.allow_network is True
     assert configured.cache_dir == Path("/tmp/colorbrew-test")
@@ -50,7 +52,9 @@ def test_settings_context_restores_after_exception() -> None:
     assert get_settings() == original
 
 
-def test_env_settings_parse_without_leaking_global_state(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_env_settings_parse_without_leaking_global_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("COLORBREW_ALLOW_NETWORK", "yes")
     monkeypatch.setenv("COLORBREW_ALLOW_CACHE", "off")
     monkeypatch.setenv("COLORBREW_CACHE_DIR", "/tmp/colorbrew-env")
@@ -92,7 +96,9 @@ def test_invalid_env_values_raise(monkeypatch: pytest.MonkeyPatch) -> None:
     importlib.reload(settings_module)
 
 
-def test_default_cache_dir_follows_platform_suffix(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_default_cache_dir_follows_platform_suffix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(settings_module.sys, "platform", sys.platform)
 
     assert settings_module._default_cache_dir().parts[-1] == "colorbrew"

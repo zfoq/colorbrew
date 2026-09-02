@@ -64,9 +64,7 @@ def rgb_to_lab(r: int, g: int, b: int) -> tuple[float, float, float]:
     return (l_star, a_star, b_star)
 
 
-def lab_to_rgb(
-    ls: float, a: float, b: float
-) -> tuple[int, int, int]:
+def lab_to_rgb(ls: float, a: float, b: float) -> tuple[int, int, int]:
     """Convert CIE L*a*b* (D65, 2-degree observer) to sRGB (0-255).
 
     Args:
@@ -82,11 +80,11 @@ def lab_to_rgb(
     fx = a / 500.0 + fy
     fz = fy - b / 200.0
 
-    fx3 = fx ** 3
-    fz3 = fz ** 3
+    fx3 = fx**3
+    fz3 = fz**3
 
     xr = fx3 if fx3 > LAB_EPSILON else (116.0 * fx - 16.0) / LAB_KAPPA
-    yr = fy ** 3 if ls > LAB_KAPPA * LAB_EPSILON else ls / LAB_KAPPA
+    yr = fy**3 if ls > LAB_KAPPA * LAB_EPSILON else ls / LAB_KAPPA
     zr = fz3 if fz3 > LAB_EPSILON else (116.0 * fz - 16.0) / LAB_KAPPA
 
     x = xr * D65_XN
@@ -102,9 +100,7 @@ def lab_to_rgb(
     return (delinearize(rl), delinearize(gl), delinearize(bl))
 
 
-def euclidean_rgb(
-    r1: int, g1: int, b1: int, r2: int, g2: int, b2: int
-) -> float:
+def euclidean_rgb(r1: int, g1: int, b1: int, r2: int, g2: int, b2: int) -> float:
     """Euclidean distance between two colors in RGB space.
 
     Args:
@@ -164,8 +160,8 @@ def delta_e_2000(
     c2 = math.sqrt(a2 * a2 + b2 * b2)
     c_avg = (c1 + c2) / 2.0
 
-    c_avg_7 = c_avg ** 7
-    g = 0.5 * (1.0 - math.sqrt(c_avg_7 / (c_avg_7 + 25.0 ** 7)))
+    c_avg_7 = c_avg**7
+    g = 0.5 * (1.0 - math.sqrt(c_avg_7 / (c_avg_7 + 25.0**7)))
 
     a1p = a1 * (1.0 + g)
     a2p = a2 * (1.0 + g)
@@ -216,9 +212,9 @@ def delta_e_2000(
     sc = 1.0 + 0.045 * c_avgp
     sh = 1.0 + 0.015 * c_avgp * t
 
-    c_avgp_7 = c_avgp ** 7
-    rc = 2.0 * math.sqrt(c_avgp_7 / (c_avgp_7 + 25.0 ** 7))
-    d_theta = 30.0 * math.exp(-((h_avgp - 275.0) / 25.0) ** 2)
+    c_avgp_7 = c_avgp**7
+    rc = 2.0 * math.sqrt(c_avgp_7 / (c_avgp_7 + 25.0**7))
+    d_theta = 30.0 * math.exp(-(((h_avgp - 275.0) / 25.0) ** 2))
     rt = -math.sin(math.radians(2.0 * d_theta)) * rc
 
     return math.sqrt(
@@ -230,8 +226,12 @@ def delta_e_2000(
 
 
 def distance(
-    r1: int, g1: int, b1: int,
-    r2: int, g2: int, b2: int,
+    r1: int,
+    g1: int,
+    b1: int,
+    r2: int,
+    g2: int,
+    b2: int,
     method: DistanceMethod = "ciede2000",
 ) -> float:
     """Calculate the distance between two RGB colors.

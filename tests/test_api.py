@@ -61,7 +61,9 @@ class TestFetchPalette:
             return _FakeResponse({"brand": "#aabbcc", "other": "#112233"})
 
         monkeypatch.setattr("colorbrew.data.api.urlopen", fake_urlopen)
-        entries = _fetch_palette("https://example.com/palette.json", get_settings().timeout)
+        entries = _fetch_palette(
+            "https://example.com/palette.json", get_settings().timeout
+        )
         assert entries == {"brand": "#aabbcc", "other": "#112233"}
 
     def test_json_nested_mapping(self, monkeypatch):
@@ -162,7 +164,9 @@ class TestPaletteCache:
         assert palette.source == "cache"
         assert calls == []
 
-    def test_stale_cache_fetches_when_network_allowed(self, monkeypatch, tmp_path: Path):
+    def test_stale_cache_fetches_when_network_allowed(
+        self, monkeypatch, tmp_path: Path
+    ):
         """A stale cache triggers a remote fetch when network is allowed."""
         cache_dir = tmp_path / "cache"
         path = _make_cache(cache_dir, "tailwind-v4", {"brand-500": "#aabbcc"})
@@ -278,7 +282,9 @@ class TestRefreshPalette:
 
         monkeypatch.setattr("colorbrew.data.api.urlopen", fake_urlopen)
         with settings_context(cache_dir=tmp_path):
-            palette = refresh_palette("tailwind", url="https://example.com/palette.json")
+            palette = refresh_palette(
+                "tailwind", url="https://example.com/palette.json"
+            )
         assert palette["brand-500"] == "#aabbcc"
         assert palette.source == "api"
         assert json.loads((tmp_path / "tailwind-v3.json").read_text()) == {

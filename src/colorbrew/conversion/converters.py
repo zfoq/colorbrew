@@ -8,8 +8,11 @@ from __future__ import annotations
 
 
 def _calc_hue(
-    r_norm: float, g_norm: float, b_norm: float,
-    c_max: float, delta: float,
+    r_norm: float,
+    g_norm: float,
+    b_norm: float,
+    c_max: float,
+    delta: float,
 ) -> float:
     """Calculate hue angle from normalized RGB, shared by HSL and HSV."""
     if c_max == r_norm:

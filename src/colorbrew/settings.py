@@ -20,7 +20,10 @@ def _default_cache_dir() -> Path:
     if sys.platform == "darwin":
         return Path.home() / "Library" / "Caches" / "colorbrew"
     if os.name == "nt":
-        return Path(os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "colorbrew"
+        return (
+            Path(os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+            / "colorbrew"
+        )
     return Path(os.getenv("XDG_CACHE_HOME", Path.home() / ".cache")) / "colorbrew"
 
 
@@ -69,6 +72,7 @@ def _from_env() -> Settings:
         cache_ttl=_env_float("COLORBREW_CACHE_TTL", 604_800.0),
         timeout=_env_float("COLORBREW_TIMEOUT", 5.0),
     )
+
 
 _settings = _from_env()
 

@@ -121,7 +121,9 @@ _SCALE_STEPS: dict[int, float] = {
 
 
 def scale(
-    r: int, g: int, b: int,
+    r: int,
+    g: int,
+    b: int,
 ) -> dict[int, tuple[int, int, int]]:
     """Generate a Tailwind-like 50-950 shade scale from a single base color.
 

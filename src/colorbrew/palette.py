@@ -29,6 +29,7 @@ def _name(name: str | None) -> str | None:
         raise PaletteError("Palette names must not be empty.")
     return normalized
 
+
 def _metadata(source: "Palette", *, kind: str | None = None) -> dict[str, object]:
     return {
         "kind": source.kind if kind is None else kind,
@@ -37,10 +38,19 @@ def _metadata(source: "Palette", *, kind: str | None = None) -> dict[str, object
         "source": source.source,
     }
 
+
 class Palette:
     """An immutable ordered collection of colors."""
 
-    __slots__ = ("_colors", "_names", "_kind", "_system", "_version", "_source", "_frozen")
+    __slots__ = (
+        "_colors",
+        "_names",
+        "_kind",
+        "_system",
+        "_version",
+        "_source",
+        "_frozen",
+    )
 
     def __init__(
         self,
@@ -54,7 +64,11 @@ class Palette:
     ) -> None:
         object.__setattr__(self, "_frozen", False)
         raw_colors = tuple(self._coerce_color(c) for c in colors)
-        raw_names = tuple(_name(n) for n in names) if names is not None else (None,) * len(raw_colors)
+        raw_names = (
+            tuple(_name(n) for n in names)
+            if names is not None
+            else (None,) * len(raw_colors)
+        )
         if len(raw_names) != len(raw_colors):
             raise PaletteError("Palette names must match color count.")
         by_color = dict(zip(raw_colors, raw_names, strict=True))
@@ -91,7 +105,11 @@ class Palette:
             return value
         if isinstance(value, str):
             return Color(value)
-        if isinstance(value, tuple) and len(value) == 3 and all(isinstance(v, int) for v in value):
+        if (
+            isinstance(value, tuple)
+            and len(value) == 3
+            and all(isinstance(v, int) for v in value)
+        ):
             return Color(*value)
         raise ColorParseError(f"Cannot coerce {value!r} to Color")
 
@@ -107,7 +125,11 @@ class Palette:
     def from_system(cls, name: str, *, version: str | None = None) -> Palette:
         from colorbrew.data import get_palette
 
-        return get_palette(name, version=version) if version is not None else get_palette(name)
+        return (
+            get_palette(name, version=version)
+            if version is not None
+            else get_palette(name)
+        )
 
     @property
     def colors(self):
@@ -137,7 +159,13 @@ class Palette:
     def source(self) -> str:
         return self._source
 
-    def _replace(self, colors: Iterable[ColorLike], *, names: Iterable[str | None] | None = None, kind: str | None = None) -> Palette:
+    def _replace(
+        self,
+        colors: Iterable[ColorLike],
+        *,
+        names: Iterable[str | None] | None = None,
+        kind: str | None = None,
+    ) -> Palette:
         return Palette(
             colors,
             names=self._names if names is None else names,
@@ -173,20 +201,37 @@ class Palette:
     def __contains__(self, item: object) -> bool:
         from colorbrew.color import Color
 
-        return _name(item) in self._names if isinstance(item, str) else isinstance(item, Color) and item in self._colors
+        return (
+            _name(item) in self._names
+            if isinstance(item, str)
+            else isinstance(item, Color) and item in self._colors
+        )
 
-    def nearest_names(self, system: str, method: DistanceMethod | None = None) -> dict[int, NameMatch]:
+    def nearest_names(
+        self, system: str, method: DistanceMethod | None = None
+    ) -> dict[int, NameMatch]:
         from colorbrew.analysis.naming import find_closest_in_palette
         from colorbrew.data import get_palette
 
         mapping = get_palette(system).as_dict()
-        return {i: find_closest_in_palette(*c.rgb, mapping, method or "ciede2000") for i, c in enumerate(self._colors)}
+        return {
+            i: find_closest_in_palette(*c.rgb, mapping, method or "ciede2000")
+            for i, c in enumerate(self._colors)
+        }
 
     def as_dict(self) -> dict[str, str]:
-        return {n: c.hex for n, c in zip(self._names, self._colors, strict=True) if n is not None}
+        return {
+            n: c.hex
+            for n, c in zip(self._names, self._colors, strict=True)
+            if n is not None
+        }
 
     def items(self):
-        return tuple((n, c) for n, c in zip(self._names, self._colors, strict=True) if n is not None)
+        return tuple(
+            (n, c)
+            for n, c in zip(self._names, self._colors, strict=True)
+            if n is not None
+        )
 
     def keys(self):
         return self.as_dict().keys()
@@ -208,33 +253,87 @@ class Palette:
             if color not in colors:
                 colors.append(color)
                 names.append(name)
-        return Palette(colors, names=names, kind=self._kind, system=self._system, version=self._version, source=self._source)
+        return Palette(
+            colors,
+            names=names,
+            kind=self._kind,
+            system=self._system,
+            version=self._version,
+            source=self._source,
+        )
 
     def __and__(self, other: object) -> Palette:
         other_palette = self._other(other)
-        pairs = [(c, n) for c, n in zip(self._colors, self._names, strict=True) if c in other_palette.colors]
-        return Palette((c for c, _ in pairs), names=(n for _, n in pairs), kind=self._kind, system=self._system, version=self._version, source=self._source)
+        pairs = [
+            (c, n)
+            for c, n in zip(self._colors, self._names, strict=True)
+            if c in other_palette.colors
+        ]
+        return Palette(
+            (c for c, _ in pairs),
+            names=(n for _, n in pairs),
+            kind=self._kind,
+            system=self._system,
+            version=self._version,
+            source=self._source,
+        )
 
     def __sub__(self, other: object) -> Palette:
         other_palette = self._other(other)
-        pairs = [(c, n) for c, n in zip(self._colors, self._names, strict=True) if c not in other_palette.colors]
-        return Palette((c for c, _ in pairs), names=(n for _, n in pairs), kind=self._kind, system=self._system, version=self._version, source=self._source)
+        pairs = [
+            (c, n)
+            for c, n in zip(self._colors, self._names, strict=True)
+            if c not in other_palette.colors
+        ]
+        return Palette(
+            (c for c, _ in pairs),
+            names=(n for _, n in pairs),
+            kind=self._kind,
+            system=self._system,
+            version=self._version,
+            source=self._source,
+        )
 
-    def map(self, fn: Callable[[object], object], *, kind: str | None = None) -> Palette:
+    def map(
+        self, fn: Callable[[object], object], *, kind: str | None = None
+    ) -> Palette:
         return self._replace((fn(c) for c in self._colors), kind=kind)
 
-    def with_alpha(self, alpha: float) -> Palette: return self.map(lambda c: c.with_alpha(alpha))
-    def lighten(self, amount: int = 10) -> Palette: return self.map(lambda c: c.lighten(amount))
-    def darken(self, amount: int = 10) -> Palette: return self.map(lambda c: c.darken(amount))
-    def saturate(self, amount: int = 10) -> Palette: return self.map(lambda c: c.saturate(amount))
-    def desaturate(self, amount: int = 10) -> Palette: return self.map(lambda c: c.desaturate(amount))
-    def rotate(self, degrees: int) -> Palette: return self.map(lambda c: c.rotate(degrees))
-    def invert(self) -> Palette: return self.map(lambda c: c.invert())
-    def grayscale(self) -> Palette: return self.map(lambda c: c.grayscale())
-    def shade(self, amount: float = 0.5) -> Palette: return self.map(lambda c: c.shade(amount))
-    def tint(self, amount: float = 0.5) -> Palette: return self.map(lambda c: c.tint(amount))
-    def tone(self, amount: float = 0.5) -> Palette: return self.map(lambda c: c.tone(amount))
-    def simulate_colorblind(self, deficiency: ColorVisionDeficiency) -> Palette: return self.map(lambda c: c.simulate_colorblind(deficiency))
+    def with_alpha(self, alpha: float) -> Palette:
+        return self.map(lambda c: c.with_alpha(alpha))
+
+    def lighten(self, amount: int = 10) -> Palette:
+        return self.map(lambda c: c.lighten(amount))
+
+    def darken(self, amount: int = 10) -> Palette:
+        return self.map(lambda c: c.darken(amount))
+
+    def saturate(self, amount: int = 10) -> Palette:
+        return self.map(lambda c: c.saturate(amount))
+
+    def desaturate(self, amount: int = 10) -> Palette:
+        return self.map(lambda c: c.desaturate(amount))
+
+    def rotate(self, degrees: int) -> Palette:
+        return self.map(lambda c: c.rotate(degrees))
+
+    def invert(self) -> Palette:
+        return self.map(lambda c: c.invert())
+
+    def grayscale(self) -> Palette:
+        return self.map(lambda c: c.grayscale())
+
+    def shade(self, amount: float = 0.5) -> Palette:
+        return self.map(lambda c: c.shade(amount))
+
+    def tint(self, amount: float = 0.5) -> Palette:
+        return self.map(lambda c: c.tint(amount))
+
+    def tone(self, amount: float = 0.5) -> Palette:
+        return self.map(lambda c: c.tone(amount))
+
+    def simulate_colorblind(self, deficiency: ColorVisionDeficiency) -> Palette:
+        return self.map(lambda c: c.simulate_colorblind(deficiency))
 
     def _zip_binary(self, other: object) -> tuple[object, ...]:
         from colorbrew.color import Color
@@ -249,10 +348,16 @@ class Palette:
     def mix(self, other: object, weight: float = 0.5, *, space: str = "rgb") -> Palette:
         if space != "rgb":
             raise PaletteError("Only rgb palette mixing is currently supported.")
-        return self._replace(c.mix(o, weight) for c, o in zip(self._colors, self._zip_binary(other), strict=True))
+        return self._replace(
+            c.mix(o, weight)
+            for c, o in zip(self._colors, self._zip_binary(other), strict=True)
+        )
 
     def blend(self, other: object, mode: str = "multiply") -> Palette:
-        return self._replace(c.blend(o, mode) for c, o in zip(self._colors, self._zip_binary(other), strict=True))
+        return self._replace(
+            c.blend(o, mode)
+            for c, o in zip(self._colors, self._zip_binary(other), strict=True)
+        )
 
     def resample(self, n: int, *, space: str = "rgb") -> Palette:
         if n < 2:
@@ -265,13 +370,23 @@ class Palette:
             pos = i * last / (n - 1)
             left = min(int(pos), last - 1)
             out.append(self._colors[left].mix(self._colors[left + 1], pos - left))
-        return Palette(out, kind=self._kind, system=self._system, version=self._version, source=self._source)
+        return Palette(
+            out,
+            kind=self._kind,
+            system=self._system,
+            version=self._version,
+            source=self._source,
+        )
 
-    def gradient(self, other: object | None = None, steps: int = 5, space: str = "rgb") -> Palette:
+    def gradient(
+        self, other: object | None = None, steps: int = 5, space: str = "rgb"
+    ) -> Palette:
         if other is None:
             return self.resample(steps, space=space)
         if len(self) != 1:
-            raise PaletteError("Palette.gradient with another color requires one source color.")
+            raise PaletteError(
+                "Palette.gradient with another color requires one source color."
+            )
         from colorbrew.color import Color
 
         target = other if isinstance(other, Color) else self._coerce_color(other)
@@ -284,7 +399,9 @@ class Palette:
         return Palette(c.complementary() for c in self._colors)
 
     def analogous(self, n: int = 3, step: int = 30) -> Palette:
-        return Palette(color for c in self._colors for color in c.analogous(n=n, step=step))
+        return Palette(
+            color for c in self._colors for color in c.analogous(n=n, step=step)
+        )
 
     def triadic(self) -> Palette:
         return Palette(color for c in self._colors for color in c.triadic())
@@ -299,9 +416,13 @@ class Palette:
         scales = [c.scale() for c in self._colors]
         return {step: Palette(s[step] for s in scales) for step in sorted(scales[0])}
 
-    def distance_matrix(self, method: DistanceMethod | None = None) -> tuple[tuple[float, ...], ...]:
+    def distance_matrix(
+        self, method: DistanceMethod | None = None
+    ) -> tuple[tuple[float, ...], ...]:
         m = method or "ciede2000"
-        return tuple(tuple(a.distance(b, m) for b in self._colors) for a in self._colors)
+        return tuple(
+            tuple(a.distance(b, m) for b in self._colors) for a in self._colors
+        )
 
     def contrast_matrix(self) -> tuple[tuple[float, ...], ...]:
         return tuple(tuple(a.contrast(b) for b in self._colors) for a in self._colors)
@@ -315,49 +436,119 @@ class Palette:
     def sort(self, by: str = "hue") -> Palette:
         def key(pair: tuple[object, str | None]):
             color, name = pair
-            h, s, l = color.hsl
-            return {"hue": h, "lightness": l, "chroma": s, "luminance": color.luminance, "name": name or ""}[by]
+            h, s, lightness = color.hsl
+            return {
+                "hue": h,
+                "lightness": lightness,
+                "chroma": s,
+                "luminance": color.luminance,
+                "name": name or "",
+            }[by]
 
         pairs = sorted(zip(self._colors, self._names, strict=True), key=key)
         return self._replace((c for c, _ in pairs), names=(n for _, n in pairs))
 
-    def dedupe(self, threshold: float = 0.0, method: DistanceMethod | None = None) -> Palette:
+    def dedupe(
+        self, threshold: float = 0.0, method: DistanceMethod | None = None
+    ) -> Palette:
         colors = []
         names = []
         for color, name in zip(self._colors, self._names, strict=True):
-            if not any(color.distance(c, method or "ciede2000") <= threshold for c in colors):
+            if not any(
+                color.distance(c, method or "ciede2000") <= threshold for c in colors
+            ):
                 colors.append(color)
                 names.append(name)
         return self._replace(colors, names=names)
 
-    def is_colorblind_safe(self, threshold: float = 10.0, deficiency: ColorVisionDeficiency = "deuteranopia") -> bool:
+    def is_colorblind_safe(
+        self,
+        threshold: float = 10.0,
+        deficiency: ColorVisionDeficiency = "deuteranopia",
+    ) -> bool:
         simulated = self.simulate_colorblind(deficiency)
         matrix = simulated.distance_matrix()
-        return all(matrix[i][j] >= threshold for i in range(len(simulated)) for j in range(i + 1, len(simulated)))
+        return all(
+            matrix[i][j] >= threshold
+            for i in range(len(simulated))
+            for j in range(i + 1, len(simulated))
+        )
 
     def classify(self) -> tuple[ColorClass, ...]:
         classes = []
-        buckets = ("red", "orange", "yellow", "chartreuse", "green", "spring", "cyan", "azure", "blue", "violet", "magenta", "rose")
+        buckets = (
+            "red",
+            "orange",
+            "yellow",
+            "chartreuse",
+            "green",
+            "spring",
+            "cyan",
+            "azure",
+            "blue",
+            "violet",
+            "magenta",
+            "rose",
+        )
         for color in self._colors:
-            h, s, l = color.hsl
+            h, s, lightness = color.hsl
             family = "neutral" if s < 10 else buckets[round(h / 30) % 12]
-            tone = "dark" if l < 25 else "muted-dark" if l < 45 else "mid" if l < 65 else "light" if l < 85 else "pale"
+            tone = (
+                "dark"
+                if lightness < 25
+                else "muted-dark"
+                if lightness < 45
+                else "mid"
+                if lightness < 65
+                else "light"
+                if lightness < 85
+                else "pale"
+            )
             chroma = "neutral" if s < 10 else "muted" if s < 50 else "vivid"
-            classes.append(ColorClass(family, tone, chroma, float(l), float(h)))
+            classes.append(ColorClass(family, tone, chroma, float(lightness), float(h)))
         return tuple(classes)
 
     def to_system(self, system: str, method: DistanceMethod | None = None) -> Palette:
         matches = self.nearest_names(system, method)
-        return Palette.from_mapping({m.name: m.hex for m in matches.values()}, kind=self._kind, system=system, source="nearest")
+        return Palette.from_mapping(
+            {m.name: m.hex for m in matches.values()},
+            kind=self._kind,
+            system=system,
+            source="nearest",
+        )
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, Palette) and (self._colors, self._names, self._kind, self._system, self._version, self._source) == (other._colors, other._names, other._kind, other._system, other._version, other._source)
+        return isinstance(other, Palette) and (
+            self._colors,
+            self._names,
+            self._kind,
+            self._system,
+            self._version,
+            self._source,
+        ) == (
+            other._colors,
+            other._names,
+            other._kind,
+            other._system,
+            other._version,
+            other._source,
+        )
 
     def __hash__(self) -> int:
-        return hash((self._colors, self._names, self._kind, self._system, self._version, self._source))
+        return hash(
+            (
+                self._colors,
+                self._names,
+                self._kind,
+                self._system,
+                self._version,
+                self._source,
+            )
+        )
 
     def __repr__(self) -> str:
         return f"Palette({self.hexes!r})"
+
 
 class Theme(Palette):
     """A role-keyed Palette."""
@@ -376,7 +567,14 @@ class Theme(Palette):
         roles = tuple(_name(role) for role in colors)
         if len(set(roles)) != len(roles):
             raise PaletteError("Theme roles must be unique.")
-        super().__init__(colors.values(), names=roles, kind=kind, system=system, version=version, source=source)
+        super().__init__(
+            colors.values(),
+            names=roles,
+            kind=kind,
+            system=system,
+            version=version,
+            source=source,
+        )
 
     @property
     def roles(self) -> tuple[str, ...]:
@@ -390,9 +588,18 @@ class Theme(Palette):
         except KeyError as exc:
             raise AttributeError(name) from exc
 
-    def _replace(self, colors: Iterable[ColorLike], *, names: Iterable[str | None] | None = None, kind: str | None = None) -> Theme:
+    def _replace(
+        self,
+        colors: Iterable[ColorLike],
+        *,
+        names: Iterable[str | None] | None = None,
+        kind: str | None = None,
+    ) -> Theme:
         roles = self.roles if names is None else tuple(_name(n) for n in names)
-        return Theme(dict(zip(roles, colors, strict=True)), **_metadata(self, kind=kind or "theme"))
+        return Theme(
+            dict(zip(roles, colors, strict=True)),
+            **_metadata(self, kind=kind or "theme"),
+        )
 
     def with_role(self, role: str, color: ColorLike) -> Theme:
         normalized = _name(role)
@@ -411,7 +618,13 @@ class Theme(Palette):
         return Theme(values, **_metadata(self, kind="theme"))
 
     @classmethod
-    def from_color(cls, seed: ColorLike, *, scheme: str = "triadic", roles: Iterable[str] | None = None) -> Palette:
+    def from_color(
+        cls,
+        seed: ColorLike,
+        *,
+        scheme: str = "triadic",
+        roles: Iterable[str] | None = None,
+    ) -> Palette:
         color = cls._coerce_color(seed)
         generated = {
             "complementary": lambda: (color, color.complementary()),
@@ -439,9 +652,16 @@ class Theme(Palette):
     def contrast_report(self):
         return {
             (left_role, right_role): left_color.wcag_report(right_color)
-            for i, (left_role, left_color) in enumerate(zip(self.roles, self._colors, strict=True))
-            for right_role, right_color in tuple(zip(self.roles, self._colors, strict=True))[i + 1 :]
+            for i, (left_role, left_color) in enumerate(
+                zip(self.roles, self._colors, strict=True)
+            )
+            for right_role, right_color in tuple(
+                zip(self.roles, self._colors, strict=True)
+            )[i + 1 :]
         }
 
     def to_css_vars(self, prefix: str = "--cb") -> str:
-        return "\n".join(f"{prefix}-{role}: {color.hex};" for role, color in zip(self.roles, self._colors, strict=True))
+        return "\n".join(
+            f"{prefix}-{role}: {color.hex};"
+            for role, color in zip(self.roles, self._colors, strict=True)
+        )

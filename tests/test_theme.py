@@ -69,19 +69,40 @@ def test_theme_from_color_outputs_and_reports() -> None:
     assert theme.roles == ("primary", "secondary", "accent")
     assert theme.primary.hex == "#336699"
     assert theme.as_dict()["primary"] == "#336699"
-    assert theme.to_css_vars() == "--cb-primary: #336699;\n--cb-secondary: #993366;\n--cb-accent: #669933;"
+    assert (
+        theme.to_css_vars()
+        == "--cb-primary: #336699;\n--cb-secondary: #993366;\n--cb-accent: #669933;"
+    )
 
     report = theme.contrast_report()
-    assert set(report) == {("primary", "secondary"), ("primary", "accent"), ("secondary", "accent")}
+    assert set(report) == {
+        ("primary", "secondary"),
+        ("primary", "accent"),
+        ("secondary", "accent"),
+    }
     assert all(r.ratio >= 1.0 for r in report.values())
 
-    explicit = Theme.from_color("#336699", scheme="complementary", roles=("base", "opposite"))
+    explicit = Theme.from_color(
+        "#336699", scheme="complementary", roles=("base", "opposite")
+    )
     assert explicit.roles == ("base", "opposite")
 
     scale = Theme.from_color("#336699", scheme="scale")
     assert isinstance(scale, Palette)
     assert not isinstance(scale, Theme)
-    assert scale.names == ("50", "100", "200", "300", "400", "500", "600", "700", "800", "900", "950")
+    assert scale.names == (
+        "50",
+        "100",
+        "200",
+        "300",
+        "400",
+        "500",
+        "600",
+        "700",
+        "800",
+        "900",
+        "950",
+    )
 
     with pytest.raises(PaletteError):
         Theme.from_color("#336699", scheme="unknown")

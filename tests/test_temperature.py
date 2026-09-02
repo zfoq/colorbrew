@@ -57,6 +57,7 @@ class TestEstimateKelvin:
         """Black returns the minimum Kelvin value."""
         assert estimate_kelvin(0, 0, 0) == 1000
 
+
 class TestKelvinToRgb:
     """Test RGB approximation from Kelvin values."""
 

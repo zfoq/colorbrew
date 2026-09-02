@@ -194,7 +194,19 @@ class TestColorPalette:
     def test_scale_method(self):
         """Palette.scale returns a step-to-Palette mapping."""
         palette = Palette([Color("red")]).scale()
-        assert set(palette.keys()) == {50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950}
+        assert set(palette.keys()) == {
+            50,
+            100,
+            200,
+            300,
+            400,
+            500,
+            600,
+            700,
+            800,
+            900,
+            950,
+        }
         for step, shades in palette.items():
             assert isinstance(shades, Palette)
             assert len(shades) == 1

@@ -120,7 +120,9 @@ def _parse_css_palette(text: str) -> dict[str, str]:
             try:
                 rgb = oklch_css_to_rgb(value)
             except ValueError as exc:
-                raise ColorValueError(f"Invalid OKLCH value for {key!r}: {value!r}") from exc
+                raise ColorValueError(
+                    f"Invalid OKLCH value for {key!r}: {value!r}"
+                ) from exc
             hex_value = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
         if not _HEX_RE.match(hex_value):
             raise ColorValueError(f"Invalid hex color for {key!r}: {value!r}")
@@ -135,9 +137,13 @@ def _fetch_palette(url: str, timeout: float) -> dict[str, str]:
         with urlopen(url, timeout=timeout) as response:  # nosec: caller opts into network access
             payload = response.read().decode("utf-8")
     except HTTPError as exc:
-        raise ColorValueError(f"Remote palette request failed for {url!r}: {exc}") from exc
+        raise ColorValueError(
+            f"Remote palette request failed for {url!r}: {exc}"
+        ) from exc
     except OSError as exc:
-        raise ColorValueError(f"Remote palette request failed for {url!r}: {exc}") from exc
+        raise ColorValueError(
+            f"Remote palette request failed for {url!r}: {exc}"
+        ) from exc
 
     try:
         data = json.loads(payload)
@@ -224,7 +230,9 @@ def _resolve_settings(
 ) -> Settings:
     settings = get_settings()
     return Settings(
-        allow_network=settings.allow_network if allow_network is None else allow_network,
+        allow_network=settings.allow_network
+        if allow_network is None
+        else allow_network,
         allow_cache=settings.allow_cache if allow_cache is None else allow_cache,
         cache_dir=Path(cache_dir) if cache_dir is not None else settings.cache_dir,
         cache_ttl=settings.cache_ttl if cache_ttl is None else cache_ttl,
@@ -355,9 +363,7 @@ def get_palette(
                 if url is not None:
                     raise
         if key not in _BUNDLED_PALETTES:
-            raise ColorValueError(
-                f"Palette version is not available bundled: {key!r}"
-            )
+            raise ColorValueError(f"Palette version is not available bundled: {key!r}")
         return Palette.from_mapping(
             _BUNDLED_PALETTES[key],
             kind="system",

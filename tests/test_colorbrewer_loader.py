@@ -16,7 +16,9 @@ def test_colorbrewer_loader_reads_bundled_data() -> None:
     assert data["Set2"]["3"] == ["#66c2a5", "#fc8d62", "#8da0cb"]
 
 
-def test_colorbrewer_loader_caches_module_level_data(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_colorbrewer_loader_caches_module_level_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     first = loader.load_colorbrewer_colors()
 
     def fail_files(*_args: object, **_kwargs: object) -> object:
@@ -54,7 +56,9 @@ def test_colorbrewer_loader_wraps_missing_data(monkeypatch: pytest.MonkeyPatch) 
         loader.load_colorbrewer_colors()
 
 
-def test_colorbrewer_loader_rejects_invalid_shape(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_colorbrewer_loader_rejects_invalid_shape(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     loader._COLORBREWER_COLORS = None
 
     resource = type(

@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import get_args
 
-from colorbrew.exceptions import ColorBrewError, ColorParseError, ColorValueError, PaletteError
+from colorbrew.exceptions import (
+    ColorBrewError,
+    ColorParseError,
+    ColorValueError,
+    PaletteError,
+)
 from colorbrew.types import ColorClass, DistanceMethod, NameMatch, WcagReport
 
 
