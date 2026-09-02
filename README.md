@@ -22,7 +22,7 @@ brand.scale()[500]                             # Color('#2986c7')
 
 ## Docs
 
-- [Getting started](docs/01-getting-started.md) covers install, imports, first `Color`, `Palette`, and `Theme` examples, included systems, and offline-by-default fetching.
+- [Getting started](docs/01-getting-started/README.md) covers install, imports, first `Color`, `Palette`, and `Theme` examples, included systems, and offline-by-default fetching.
 - [Color, Palette, and Theme](docs/02-architecture/color-and-palette.md) covers the public API and runnable examples.
 - [Color systems](docs/03-specifications/color-systems.md) covers included CSS named colors, Tailwind, Material, ColorBrewer, bundled data, remote loading, and cache behavior.
 
