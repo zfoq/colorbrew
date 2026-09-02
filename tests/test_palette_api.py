@@ -41,7 +41,7 @@ class TestPaletteApi:
     def test_get_palette_defaults_to_bundled(self):
         """Load bundled data without cache or network."""
         palette = get_palette("tailwind")
-        assert palette["sky-500"] == "#0ea5e9"
+        assert palette["sky-500"].hex == "#0ea5e9"
 
     def test_get_palette_returns_palette_object(self):
         """``get_palette`` returns a Palette instance."""
@@ -60,15 +60,15 @@ class TestPaletteApi:
         """Palette supports subscript, membership, and iteration."""
         palette = get_palette("tailwind")
         assert "sky-500" in palette
-        assert palette["sky-500"] == "#0ea5e9"
+        assert palette["sky-500"].hex == "#0ea5e9"
         assert isinstance(len(palette), int)
         assert "sky-500" in dict(palette)
 
     def test_palette_mapping_uses_case_insensitive_key_semantics(self):
         """Subscript, membership, and get agree on normalized keys."""
         palette = get_palette("tailwind")
-        assert palette[" SKY-500 "] == "#0ea5e9"
-        assert palette.get("SKY-500") == "#0ea5e9"
+        assert palette[" SKY-500 "].hex == "#0ea5e9"
+        assert palette.get("SKY-500").hex == "#0ea5e9"
         assert "Sky-500" in palette
         assert "missing" not in palette
         assert palette.get("missing") is None
@@ -175,7 +175,7 @@ class TestPaletteApi:
                 source="auto",
                 allow_network=True,
                 allow_cache=False,
-            )["sky-500"]
+            )["sky-500"].hex
             == "#0ea5e9"
         )
 
@@ -183,14 +183,14 @@ class TestPaletteApi:
         """Default Tailwind load returns the bundled v3 palette."""
         palette = get_palette("tailwind")
         assert palette.version == "v3"
-        assert palette["sky-500"] == "#0ea5e9"
+        assert palette["sky-500"].hex == "#0ea5e9"
 
     def test_tailwind_version_v3_bundled(self):
         """Explicit Tailwind v3 uses bundled data without network."""
         palette = get_palette("tailwind", version="v3")
         assert palette.version == "v3"
         assert palette.source == "bundled"
-        assert palette["sky-500"] == "#0ea5e9"
+        assert palette["sky-500"].hex == "#0ea5e9"
 
     def test_tailwind_version_v4_upstream_default_url(self, monkeypatch):
         """Tailwind v4 fetches from the default upstream URL when enabled."""
@@ -209,7 +209,7 @@ class TestPaletteApi:
         )
         assert palette.version == "v4"
         assert palette.source == "api"
-        assert palette["brand-500"] == "#aabbcc"
+        assert palette["brand-500"].hex == "#aabbcc"
         assert called_with == [
             "https://raw.githubusercontent.com/tailwindlabs/tailwindcss/"
             "v4.0.0/packages/tailwindcss/theme.css"
@@ -231,7 +231,7 @@ class TestPaletteApi:
             allow_network=True,
             url="https://example.com/tailwind-v4.json",
         )
-        assert palette["brand-500"] == "#ddeeff"
+        assert palette["brand-500"].hex == "#ddeeff"
         assert called_with == ["https://example.com/tailwind-v4.json"]
 
     def test_tailwind_bundled_preserves_offline_behavior(self):
@@ -244,7 +244,7 @@ class TestPaletteApi:
         """Default Material load returns the bundled v2 palette."""
         palette = get_palette("material")
         assert palette.version == "v2"
-        assert palette["blue-600"] == "#1e88e5"
+        assert palette["blue-600"].hex == "#1e88e5"
 
     def test_material_v2_bundled_explicit(self):
         """Explicit Material v2 uses bundled data."""
@@ -269,10 +269,10 @@ class TestPaletteApi:
         )
         assert palette.version == "v3"
         assert palette.source == "api"
-        assert palette["primary-500"] == "#123456"
+        assert palette["primary-500"].hex == "#123456"
         assert called_with == [
             "https://raw.githubusercontent.com/material-foundation/material-tokens/"
-            "main/css/baseline.css"
+            "main/css/palette.css"
         ]
 
     def test_material_version_v3(self, monkeypatch):

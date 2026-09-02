@@ -147,7 +147,7 @@ class TestColorPalette:
 
         palette = get_palette("tailwind")
         assert isinstance(palette, Palette)
-        assert palette["sky-500"] == "#0ea5e9"
+        assert palette["sky-500"].hex == "#0ea5e9"
         assert "sky-500" in palette
         assert "sky-500" in dict(palette)
 

@@ -22,9 +22,9 @@ from colorbrew.settings import Settings, get_settings
 
 _PACKAGE_VERSION = _package_version("colorbrew")
 
-_HEX_RE = re.compile(r"^#[0-9a-f]{6}$")
+_HEX_RE = re.compile(r"^#[0-9a-f]{6}(?:[0-9a-f]{2})?$")
 _CSS_VAR_RE = re.compile(
-    r"--([a-zA-Z0-9_-]+):\s*(#[0-9a-f]{6}|oklch\([^)]+\))\s*;",
+    r"--([a-zA-Z0-9_-]+):\s*(#[0-9a-f]{6}(?:[0-9a-f]{2})?|oklch\([^)]+\))\s*;",
     re.IGNORECASE,
 )
 
@@ -60,7 +60,7 @@ _PALETTE_URLS: dict[str, str] = {
     ),
     "material@v3": (
         "https://raw.githubusercontent.com/material-foundation/material-tokens/"
-        "main/css/baseline.css"
+        "main/css/palette.css"
     ),
 }
 

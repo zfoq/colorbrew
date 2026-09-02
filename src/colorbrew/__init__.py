@@ -26,13 +26,13 @@ from colorbrew.conversion.converters import (
     rgb_to_hsv,
 )
 from colorbrew.data import (
-    get_palette,
     get_system,
     list_palettes,
     list_systems,
     register_system,
     resolve_name,
 )
+from colorbrew.data.registry import get_palette
 from colorbrew.exceptions import (
     ColorBrewError,
     ColorParseError,

@@ -160,7 +160,7 @@ class TestPaletteCache:
             cache_dir=cache_dir,
             cache_ttl=300.0,
         )
-        assert palette["brand-500"] == "#aabbcc"
+        assert palette["brand-500"].hex == "#aabbcc"
         assert palette.source == "cache"
         assert calls == []
 
@@ -186,7 +186,7 @@ class TestPaletteCache:
             cache_dir=cache_dir,
             cache_ttl=300.0,
         )
-        assert palette["brand-500"] == "#ddeeff"
+        assert palette["brand-500"].hex == "#ddeeff"
         assert palette.source == "api"
         assert json.loads((cache_dir / "tailwind-v4.json").read_text()) == {
             "brand-500": "#ddeeff"
@@ -217,7 +217,7 @@ class TestPaletteCache:
             cache_dir=cache_dir,
             cache_ttl=300.0,
         )
-        assert palette["sky-500"] == "#0ea5e9"
+        assert palette["sky-500"].hex == "#0ea5e9"
         assert palette.source == "bundled"
         assert calls == []
 
@@ -258,7 +258,7 @@ class TestPaletteCache:
             cache_dir=cache_dir,
             cache_ttl=300.0,
         )
-        assert palette["brand-500"] == "#aabbcc"
+        assert palette["brand-500"].hex == "#aabbcc"
         assert palette.source == "cache"
 
     def test_atomic_cache_write(self, tmp_path: Path):
@@ -285,7 +285,7 @@ class TestRefreshPalette:
             palette = refresh_palette(
                 "tailwind", url="https://example.com/palette.json"
             )
-        assert palette["brand-500"] == "#aabbcc"
+        assert palette["brand-500"].hex == "#aabbcc"
         assert palette.source == "api"
         assert json.loads((tmp_path / "tailwind-v3.json").read_text()) == {
             "brand-500": "#aabbcc"
@@ -310,5 +310,5 @@ class TestRefreshPalette:
             url="https://example.com/theme.css",
             cache_dir=tmp_path,
         )
-        assert palette["primary"].startswith("#")
-        assert palette["surface"] == "#ffffff"
+        assert palette["primary"].hex.startswith("#")
+        assert palette["surface"].hex == "#ffffff"

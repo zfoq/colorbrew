@@ -92,8 +92,8 @@ def test_palette_aggregate_methods_and_system_mapping():
     )
     assert isinstance(palette.is_colorblind_safe(), bool)
     assert len(palette.classify()) == 3
-    assert palette.nearest_names("named")[0].name == "red"
-    assert palette.to_system("named").hexes[0] == "#ff0000"
+    assert palette.nearest_names("css")[0].name == "red"
+    assert palette.to_system("css").hexes[0] == "#ff0000"
 
 
 def test_palette_gradient_and_resample_return_square_count():

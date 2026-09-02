@@ -123,13 +123,10 @@ class Palette:
 
     @classmethod
     def from_system(cls, name: str, *, version: str | None = None) -> Palette:
-        from colorbrew.data import get_palette
+        from colorbrew.data.registry import get_palette
 
-        return (
-            get_palette(name, version=version)
-            if version is not None
-            else get_palette(name)
-        )
+        target = f"{name}@{version}" if version is not None else name
+        return get_palette(target)
 
     @property
     def colors(self):
@@ -188,7 +185,7 @@ class Palette:
             normalized = _name(key)
             for name, color in zip(self._names, self._colors, strict=True):
                 if name == normalized:
-                    return color.hex if self._kind == "system" else color
+                    return color
             raise KeyError(key)
         return self._colors[key]
 
@@ -211,7 +208,7 @@ class Palette:
         self, system: str, method: DistanceMethod | None = None
     ) -> dict[int, NameMatch]:
         from colorbrew.analysis.naming import find_closest_in_palette
-        from colorbrew.data import get_palette
+        from colorbrew.data.registry import get_palette
 
         mapping = get_palette(system).as_dict()
         return {
@@ -239,8 +236,11 @@ class Palette:
     def values(self):
         return self.as_dict().values()
 
-    def get(self, name: str, default: str | None = None) -> str | None:
-        return self.as_dict().get(_name(name), default)
+    def get(self, name: str, default: str | None = None) -> object | None:
+        try:
+            return self[name]
+        except KeyError:
+            return default
 
     def _other(self, other: object) -> Palette:
         return other if isinstance(other, Palette) else Palette(other)  # type: ignore[arg-type]

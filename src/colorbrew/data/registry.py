@@ -46,7 +46,7 @@ def _normalize_version(version: str) -> str:
 
 
 def _normalize_palette_key(key: str) -> str:
-    return key.strip().lower()
+    return key.strip().lower().replace("/", "-")
 
 
 def _freeze_entries(

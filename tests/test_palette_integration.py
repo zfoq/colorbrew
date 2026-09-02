@@ -105,7 +105,7 @@ def test_get_palette_from_remote_source(
     assert palette.system == family
     assert palette.source == "api"
     assert expected_key in palette
-    assert palette[expected_key].startswith("#")
+    assert palette[expected_key].hex.startswith("#")
 
 
 @pytest.mark.parametrize(

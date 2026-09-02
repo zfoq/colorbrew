@@ -54,7 +54,7 @@ def test_registry_resolves_names_and_registers_custom_systems() -> None:
     assert resolve_name("example@V1") == ("example", "v1")
     assert "example" in list_systems()
     assert list_palettes("example") == ("example", "example@v1")
-    assert get_palette("example").get("brand") == "#123456"
+    assert get_palette("example").get("brand").hex == "#123456"
 
 
 def test_registry_colorbrewer_scheme_count_palettes_and_lazy_palette_import() -> None:
