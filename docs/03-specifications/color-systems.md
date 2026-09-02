@@ -6,10 +6,10 @@ ColorBrew keeps named colors and system palettes in a runtime registry. Built-in
 
 | System | Included data | Default palette | Example |
 |---|---|---|---|
-| `css` | CSS named colors such as `rebeccapurple`, `cornflowerblue`, and `transparent` | `css@v1` | `Color.named("rebeccapurple")` |
-| `tailwind` | Bundled Tailwind CSS v3 color names such as `sky-500` | `tailwind@v3` | `Palette.from_system("tailwind")["sky-500"]` |
-| `material` | Bundled Material Design v2 names such as `blue-600` | `material@v2` | `Color.named("blue-600", system="material")` |
-| `colorbrewer` | Bundled ColorBrewer schemes by name and size, such as `blues-3` | none | `get_palette("colorbrewer:blues-3")` |
+| `css` | 148 CSS named colors, including `rebeccapurple`, `cornflowerblue`, and `transparent` | `css@v1` | `Color.named("rebeccapurple")` |
+| `tailwind` | 242 bundled Tailwind CSS v3 color names, including `sky-500` | `tailwind@v3` | `Palette.from_system("tailwind")["sky-500"]` |
+| `material` | 190 bundled Material Design v2 names, including `blue-600` | `material@v2` | `Color.named("blue-600", system="material")` |
+| `colorbrewer` | 35 bundled ColorBrewer schemes, 264 named palettes, and 1,680 colors, including `blues-3` | none | `get_palette("colorbrewer:blues-3")` |
 
 CSS, Tailwind, and Material expose flat name-to-hex entries for `Color.named()`, `Color.names()`, `Color.nearest()`, and `Palette.to_system()`. ColorBrewer exposes named palettes for palette lookup; its schemes are not flat named colors.
 

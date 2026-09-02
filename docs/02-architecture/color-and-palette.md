@@ -20,61 +20,76 @@ All three are immutable after construction. Change helpers return a new `Color`,
 
 Use `Color` when one color is enough:
 
-```python
-from colorbrew import Color
+```pycon
+>>> from colorbrew import Color
+>>> brand = Color("#336699")
+>>> brand.rgb
+(51, 102, 153)
+>>> tuple(round(x, 4) for x in brand.oklch)
+(0.4993, 0.0987, 250.4331)
+>>> brand.css_oklch
+'oklch(0.4993 0.0987 250.43)'
+>>> brand.classify().family
+'blue'
+>>> brand.names()["css"].name
+'royalblue'
+>>> Color.named("tailwind:sky-500").hex
+'#0ea5e9'
 
-brand = Color("#336699")
-brand.rgb                         # (51, 102, 153)
-brand.oklch                       # (L, C, h) tuple
-brand.css_oklch                   # "oklch(...)"
-brand.classify().family           # "azure"
-brand.names()["css"].name         # nearest CSS named color
-Color.named("tailwind:sky-500")   # bundled Tailwind color
 ```
 
 Use `Palette` for ordered swatches, named systems, and batch transforms:
 
-```python
-from colorbrew import Palette, get_palette
+```pycon
+>>> from colorbrew import Palette, get_palette
+>>> brand = Palette(["#336699", "gold", (204, 153, 51)])
+>>> brand.hexes
+('#336699', '#ffd700', '#cc9933')
+>>> brand.lighten(10).hexes
+('#4080bf', '#ffe033', '#d6ad5c')
+>>> brand.classify()[0].tone
+'muted-dark'
+>>> Palette.from_system("tailwind")["sky-500"].hex
+'#0ea5e9'
+>>> get_palette("colorbrewer:blues-3").hexes
+('#deebf7', '#9ecae1', '#3182bd')
 
-brand = Palette(["#336699", "gold", (204, 153, 51)])
-brand.hexes                       # ('#336699', '#ffd700', '#cc9933')
-brand.lighten(10).hexes           # transformed copy
-brand.classify()[0].tone          # perceptual class for the first color
-
-system = Palette.from_system("tailwind")
-system["sky-500"].hex             # '#0ea5e9'
-get_palette("colorbrewer:blues-3").hexes
 ```
 
 Use `Theme` when names are semantic roles:
 
-```python
-from colorbrew import Theme
+```pycon
+>>> from colorbrew import Theme
+>>> theme = Theme({"primary": "#336699", "text": "white"})
+>>> theme.primary.hex
+'#336699'
+>>> theme.with_role("accent", "gold").roles
+('primary', 'text', 'accent')
+>>> theme.to_css_vars()
+'--cb-primary: #336699;\n--cb-text: #ffffff;'
 
-theme = Theme({"primary": "#336699", "text": "white"})
-theme.primary.hex                 # '#336699'
-theme.with_role("accent", "gold").roles
-print(theme.to_css_vars())        # --cb-primary: #336699; ...
 ```
 
 Settings control optional network/cache behavior without changing normal offline use:
 
-```python
-from colorbrew import configure, get_palette, settings_context
+```pycon
+>>> from colorbrew import configure, settings_context
+>>> from colorbrew.data.api import get_palette
+>>> _ = configure(allow_cache=True, allow_network=False)
+>>> with settings_context(allow_network=False):
+...     palette = get_palette("tailwind", source="bundled")
+...     palette.source
+'bundled'
 
-configure(allow_cache=True, allow_network=False)
-
-with settings_context(allow_network=True):
-    palette = get_palette("tailwind", version="v4", source="api")
-    palette.source                # 'api'
 ```
 
 Standalone converters are exported for code that does not need a `Color` object:
 
-```python
-from colorbrew import hex_to_rgb, rgb_to_hex
+```pycon
+>>> from colorbrew import hex_to_rgb, rgb_to_hex as as_hex
+>>> as_hex(52, 152, 219)
+'#3498db'
+>>> hex_to_rgb("#3498db")
+(52, 152, 219)
 
-rgb_to_hex (52, 152, 219)         # '#3498db'
-hex_to_rgb("#3498db")             # (52, 152, 219)
 ```

@@ -475,14 +475,14 @@ For cases where you don't need the full `Color` class:
 
 ```python
 from colorbrew import (
-    hex_to_rgb, rgb_to_hex,
+    hex_to_rgb, rgb_to_hex as as_hex,
     hsl_to_rgb, rgb_to_hsl,
     hsv_to_rgb, rgb_to_hsv,
     cmyk_to_rgb, rgb_to_cmyk,
     rgb_to_lab, lab_to_rgb,
 )
 
-rgb_to_hex (52, 152, 219)      # "#3498db"
+as_hex(52, 152, 219)          # "#3498db"
 hex_to_rgb("#3498db")          # (52, 152, 219)
 rgb_to_hsl(255, 0, 0)         # (0, 100, 50)
 hsl_to_rgb(0, 100, 50)        # (255, 0, 0)
