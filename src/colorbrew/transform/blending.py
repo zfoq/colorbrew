@@ -56,7 +56,7 @@ def _soft_light_ch(a: float, b: float) -> float:
     if a <= 0.25:
         d = ((16.0 * a - 12.0) * a + 4.0) * a
     else:
-        d = a ** 0.5
+        d = a**0.5
     return a + (2.0 * b - 1.0) * (d - a)
 
 
@@ -101,7 +101,6 @@ def blend(
     fn = _MODES.get(mode)
     if fn is None:
         raise ValueError(
-            f"Unknown blend mode {mode!r}. "
-            f"Supported: {', '.join(sorted(_MODES))}"
+            f"Unknown blend mode {mode!r}. Supported: {', '.join(sorted(_MODES))}"
         )
     return _apply(base, top, fn)

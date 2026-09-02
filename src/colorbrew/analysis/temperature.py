@@ -110,5 +110,3 @@ def estimate_kelvin(r: int, g: int, b: int) -> int:
 
     # Clamp to reasonable range
     return max(1000, min(40000, round(cct)))
-
-

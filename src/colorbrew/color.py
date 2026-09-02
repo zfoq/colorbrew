@@ -8,9 +8,13 @@ methods return new ``Color`` instances; nothing is mutated.
 from __future__ import annotations
 
 import random
-from collections.abc import Iterator
-from typing import Literal, overload
+from collections.abc import Iterable, Iterator, Mapping
+from typing import TYPE_CHECKING, Literal, overload
 
+if TYPE_CHECKING:
+    from colorbrew.palette import Palette
+
+from colorbrew.analysis import classify as _classify
 from colorbrew.analysis import colorblind as _cb
 from colorbrew.analysis import contrast as _contrast
 from colorbrew.analysis import delta_e as _delta_e
@@ -18,16 +22,16 @@ from colorbrew.analysis import naming as _naming
 from colorbrew.analysis import temperature as _temp
 from colorbrew.conversion import converters as _conv
 from colorbrew.conversion import css_output as _css
+from colorbrew.conversion import oklab as _oklab
 from colorbrew.conversion.parsing import parse_rgb_args, parse_string_with_alpha
-from colorbrew.data.material_colors import MATERIAL_COLORS
-from colorbrew.data.named_colors import NAMED_COLORS
-from colorbrew.data.tailwind_colors import TAILWIND_COLORS
+from colorbrew.data import registry as _registry
 from colorbrew.exceptions import ColorParseError, ColorValueError
 from colorbrew.transform import blending as _blending
 from colorbrew.transform import manipulation as _manip
 from colorbrew.transform import palettes as _palettes
 from colorbrew.types import (
     BlendMode,
+    ColorClass,
     ColorVisionDeficiency,
     DistanceMethod,
     NameMatch,
@@ -38,9 +42,27 @@ from colorbrew.types import (
 def _new(rgb: tuple[int, int, int], alpha: float = 1.0) -> Color:
     """Internal fast-path constructor that skips validation."""
     c = object.__new__(Color)
-    c._rgb = rgb
-    c._alpha = alpha
-    return c
+    # ponytail: ceiling is int storage; upgrade path is float internal storage
+    # if a future release prioritizes chained-operation precision.
+    object.__setattr__(c, "_rgb", rgb)
+    object.__setattr__(c, "_alpha", alpha)
+    object.__setattr__(c, "_frozen", True)
+    return c  # frozen Color
+
+
+def _get_default_distance() -> DistanceMethod:
+    from colorbrew.settings import get_settings
+
+    return get_settings().default_distance
+
+
+def _system_has_names(system: str) -> bool:
+    """Return True if the registered system has flat named colors."""
+    try:
+        record = _registry.get_system(system)
+    except ColorValueError:
+        return False
+    return bool(record.entries())
 
 
 class Color:
@@ -59,7 +81,7 @@ class Color:
         ColorValueError: If integer arguments are outside 0-255.
     """
 
-    __slots__ = ("_alpha", "_rgb")
+    __slots__ = ("_alpha", "_frozen", "_rgb")
 
     @overload
     def __init__(self, value: str, /) -> None: ...
@@ -69,10 +91,13 @@ class Color:
 
     def __init__(self, *args: str | int) -> None:
         """Create a Color from a string or three RGB integers."""
+        object.__setattr__(self, "_frozen", False)
         if len(args) == 1:
             arg = args[0]
             if isinstance(arg, str):
-                self._rgb, self._alpha = parse_string_with_alpha(arg)
+                rgb, alpha = parse_string_with_alpha(arg)
+                object.__setattr__(self, "_rgb", rgb)
+                object.__setattr__(self, "_alpha", alpha)
             elif isinstance(arg, int):
                 raise ColorValueError(
                     "Single integer is not a valid color. "
@@ -86,12 +111,29 @@ class Color:
             r, g, b = args
             if not (isinstance(r, int) and isinstance(g, int) and isinstance(b, int)):
                 raise ColorValueError("RGB values must be integers.")
-            self._rgb = parse_rgb_args(r, g, b)  # type: ignore[arg-type]
-            self._alpha = 1.0
+            object.__setattr__(self, "_rgb", parse_rgb_args(r, g, b))  # type: ignore[arg-type]
+            object.__setattr__(self, "_alpha", 1.0)
         else:
-            raise ColorParseError(
-                f"Color() takes 1 or 3 arguments, got {len(args)}."
+            raise ColorParseError(f"Color() takes 1 or 3 arguments, got {len(args)}.")
+        object.__setattr__(self, "_frozen", True)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if name not in self.__slots__:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
             )
+        if getattr(self, "_frozen", False):
+            raise ColorValueError("Color is immutable.")
+        object.__setattr__(self, name, value)
+
+    def __delattr__(self, name: str) -> None:
+        if name not in self.__slots__:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
+        if getattr(self, "_frozen", False):
+            raise ColorValueError("Color is immutable.")
+        object.__delattr__(self, name)
 
     # --- Class methods / alternate constructors ---
 
@@ -177,58 +219,83 @@ class Color:
         return _new(_delta_e.lab_to_rgb(ls, a, b))
 
     @classmethod
-    def from_name(cls, name: str) -> Color:
-        """Create a Color from a CSS named color string.
+    def from_oklab(cls, lightness: float, a: float, b: float) -> Color:
+        """Create a Color from OKLab values.
 
         Args:
-            name: CSS color name (case-insensitive), e.g. ``"cornflowerblue"``.
+            lightness: Lightness (0-1).
+            a: a* green-red axis (unbounded).
+            b: b* blue-yellow axis (unbounded).
 
         Returns:
             A new Color instance.
-
-        Raises:
-            ColorParseError: If the name is not a recognized CSS color.
         """
-        lower = name.lower().strip()
-        if lower not in NAMED_COLORS:
-            raise ColorParseError(f"Unknown color name: {name!r}")
-        return _new(_conv.hex_to_rgb(NAMED_COLORS[lower]))
+        return _new(_oklab.oklab_to_rgb(lightness, a, b))
 
     @classmethod
-    def from_tailwind(cls, name: str) -> Color:
-        """Create a Color from a Tailwind CSS color name.
+    def from_oklch(cls, lightness: float, chroma: float, hue: float) -> Color:
+        """Create a Color from OKLCH values.
 
         Args:
-            name: Tailwind color name (case-insensitive), e.g. ``"sky-500"``.
+            lightness: Lightness (0-1).
+            chroma: Chroma (non-negative).
+            hue: Hue in degrees (0-360).
 
         Returns:
             A new Color instance.
 
         Raises:
-            ColorParseError: If the name is not a recognized Tailwind color.
+            ColorValueError: If lightness or chroma is out of range.
         """
-        lower = name.lower().strip()
-        if lower not in TAILWIND_COLORS:
-            raise ColorParseError(f"Unknown Tailwind color: {name!r}")
-        return _new(_conv.hex_to_rgb(TAILWIND_COLORS[lower]))
+        if not 0.0 <= lightness <= 1.0:
+            raise ColorValueError(f"OKLCH lightness must be 0-1, got {lightness}")
+        if chroma < 0.0:
+            raise ColorValueError(f"OKLCH chroma must be non-negative, got {chroma}")
+        return _new(_oklab.oklch_to_rgb(lightness, chroma, hue))
 
     @classmethod
-    def from_material(cls, name: str) -> Color:
-        """Create a Color from a Material Design color name.
+    def named(cls, name: str, *, system: str | None = None) -> Color:
+        """Create a Color from a registered color system's named color.
+
+        Without an explicit system, searches built-in systems in deterministic
+        order: ``css``, ``tailwind``, ``material``.
+
+        Supports ``system:name`` prefixes, e.g. ``"tailwind:sky-500"``.
 
         Args:
-            name: Material color name (case-insensitive), e.g. ``"blue-600"``.
+            name: Color name (case-insensitive).
+            system: Optional registered system name to search.
 
         Returns:
             A new Color instance.
 
         Raises:
-            ColorParseError: If the name is not a recognized Material color.
+            ColorParseError: If the name is not found.
         """
+        if system is not None:
+            return cls._lookup_named(name, system)
+
+        if ":" in name:
+            system_name, _, color_name = name.partition(":")
+            return cls._lookup_named(color_name, system_name)
+
+        for system_name in ("css", "tailwind", "material", "colorbrewer"):
+            try:
+                return cls._lookup_named(name, system_name)
+            except ColorParseError:
+                continue
+
+        raise ColorParseError(f"Unknown color name: {name!r}")
+
+    @classmethod
+    def _lookup_named(cls, name: str, system: str) -> Color:
+        """Resolve a single named color from a registered system."""
+        record = _registry.get_system(system)
+        entries = record.entries()
         lower = name.lower().strip()
-        if lower not in MATERIAL_COLORS:
-            raise ColorParseError(f"Unknown Material Design color: {name!r}")
-        return _new(_conv.hex_to_rgb(MATERIAL_COLORS[lower]))
+        if lower not in entries:
+            raise ColorParseError(f"Unknown color name: {name!r} in system {system!r}")
+        return _new(_conv.hex_to_rgb(entries[lower]))
 
     @classmethod
     def from_kelvin(cls, kelvin: int) -> Color:
@@ -254,11 +321,13 @@ class Color:
         Returns:
             A new Color with random RGB values.
         """
-        return _new((
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255),
-        ))
+        return _new(
+            (
+                random.randint(0, 255),
+                random.randint(0, 255),
+                random.randint(0, 255),
+            )
+        )
 
     # --- Properties: channel access ---
 
@@ -324,6 +393,27 @@ class Color:
     def lab(self) -> tuple[float, float, float]:
         """CIE L*a*b* tuple ``(L*, a*, b*)`` using D65 illuminant."""
         return _delta_e.rgb_to_lab(*self._rgb)
+
+    @property
+    def oklab(self) -> tuple[float, float, float]:
+        """OKLab tuple ``(L, a, b)``."""
+        return _oklab.rgb_to_oklab(*self._rgb)
+
+    @property
+    def oklch(self) -> tuple[float, float, float]:
+        """OKLCH tuple ``(L, C, h)`` with hue in degrees."""
+        return _oklab.rgb_to_oklch(*self._rgb)
+
+    @property
+    def css_oklch(self) -> str:
+        """CSS ``oklch()`` function string.
+
+        Automatically includes alpha when alpha < 1.0.
+        """
+        ll, c, h = self.oklch
+        if self._alpha < 1.0:
+            return f"oklch({ll:.4f} {c:.4f} {h:.2f} / {self._alpha})"
+        return f"oklch({ll:.4f} {c:.4f} {h:.2f})"
 
     # --- Properties: CSS / HTML output ---
 
@@ -418,66 +508,76 @@ class Color:
             return self
         return _new(self._rgb, 1.0)
 
-    # --- Methods: name lookup ---
+    # --- Methods: name lookup / classification ---
 
-    def closest_name(self, method: DistanceMethod = "euclidean") -> NameMatch:
-        """Find the closest CSS named color.
-
-        Args:
-            method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
-                or ``"ciede2000"``.
+    def classify(self) -> ColorClass:
+        """Classify this color into perceptual OKLCH buckets.
 
         Returns:
-            A NameMatch with the closest CSS color name.
+            A ColorClass with family, tone, chroma, lightness, and hue.
         """
-        return _naming.find_closest_name(*self._rgb, method)
+        return _classify.classify_color(*self._rgb)
 
-    def closest_tailwind(self, method: DistanceMethod = "euclidean") -> NameMatch:
-        """Find the closest Tailwind CSS color.
-
-        Args:
-            method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
-                or ``"ciede2000"``.
-
-        Returns:
-            A NameMatch with the closest Tailwind color name.
-        """
-        return _naming.find_closest_tailwind(*self._rgb, method)
-
-    def closest_material(self, method: DistanceMethod = "euclidean") -> NameMatch:
-        """Find the closest Material Design color.
-
-        Args:
-            method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
-                or ``"ciede2000"``.
-
-        Returns:
-            A NameMatch with the closest Material Design color name.
-        """
-        return _naming.find_closest_material(*self._rgb, method)
-
-    def nearest_palette(
+    def nearest(
         self,
-        palette: dict[str, str],
-        method: DistanceMethod = "euclidean",
+        target: str | Palette | Mapping[str, str],
+        method: DistanceMethod | None = None,
     ) -> NameMatch:
-        """Find the closest color in a custom palette.
+        """Find the nearest color in a system, palette, or mapping.
 
         Args:
-            palette: Mapping of color names to hex strings.
+            target: A registered system name, a ``Palette``, or a mapping of
+                names to hex strings.
             method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
-                or ``"ciede2000"``.
+                or ``"ciede2000"``. Defaults to global settings.
 
         Returns:
-            A NameMatch with the closest palette entry.
+            A NameMatch with the closest entry.
 
         Raises:
             ColorValueError: If the palette is empty.
-            ColorParseError: If a palette color cannot be parsed.
         """
+        from colorbrew.palette import Palette
+
+        if isinstance(target, str):
+            palette = _registry.get_palette(target).as_dict()
+        elif isinstance(target, Palette):
+            palette = target.as_dict()
+        elif isinstance(target, Mapping):
+            palette = target
+        else:
+            raise ColorValueError(
+                f"target must be a system name, Palette, or mapping, got {type(target).__name__}"
+            )
         if not palette:
             raise ColorValueError("Palette must not be empty.")
-        return _naming.find_closest_in_palette(*self._rgb, palette, method)
+        return _naming.find_closest_in_palette(
+            *self._rgb, palette, method or _get_default_distance()
+        )
+
+    def names(
+        self,
+        *,
+        systems: Iterable[str] | None = None,
+        method: DistanceMethod | None = None,
+    ) -> dict[str, NameMatch]:
+        """Find the nearest color name in each registered system.
+
+        Args:
+            systems: Optional iterable of registered system names. Defaults to
+                all registered systems.
+            method: Distance algorithm. Defaults to global settings.
+
+        Returns:
+            Mapping from system name to NameMatch.
+        """
+        if systems is None:
+            systems = _registry.list_systems()
+        return {
+            system: self.nearest(system, method=method)
+            for system in systems
+            if _system_has_names(system)
+        }
 
     # --- Methods: color distance ---
 
@@ -669,8 +769,7 @@ class Color:
             List of n Color instances.
         """
         return [
-            _new(rgb, self._alpha)
-            for rgb in _palettes.analogous(*self._rgb, n, step)
+            _new(rgb, self._alpha) for rgb in _palettes.analogous(*self._rgb, n, step)
         ]
 
     def triadic(self) -> list[Color]:
@@ -688,8 +787,7 @@ class Color:
             List of 2 Color instances.
         """
         return [
-            _new(rgb, self._alpha)
-            for rgb in _palettes.split_complementary(*self._rgb)
+            _new(rgb, self._alpha) for rgb in _palettes.split_complementary(*self._rgb)
         ]
 
     def tetradic(self) -> list[Color]:
@@ -825,24 +923,6 @@ class Color:
             _contrast.find_accessible_color(self._rgb, target._rgb, level, large)
         )
 
-    def adjust_contrast(
-        self,
-        target: Color,
-        level: Literal["aa", "aaa"] = "aa",
-        large: bool = False,
-    ) -> Color:
-        """Return a contrast-compliant version of *target* against this color.
-
-        Args:
-            target: The desired foreground color.
-            level: ``"aa"`` or ``"aaa"``.
-            large: True for large text (lower thresholds).
-
-        Returns:
-            An accessible Color close to *target*.
-        """
-        return self.find_accessible_color(target, level=level, large=large)
-
     # --- Methods: color blindness simulation ---
 
     def simulate_colorblind(self, deficiency: ColorVisionDeficiency) -> Color:
@@ -898,11 +978,11 @@ class Color:
         return iter(self._rgb)
 
     def __format__(self, format_spec: str) -> str:
-        """Support format specs: ``hex``, ``rgb``, ``hsl``, ``hsv``.
+        """Support format specs: ``hex``, ``rgb``, ``hsl``, ``hsv``, ``oklch``.
 
         Args:
             format_spec: One of ``"hex"``, ``"rgb"``, ``"hsl"``, ``"hsv"``,
-                or ``""`` (defaults to hex).
+                ``"oklch"``, or ``""`` (defaults to hex).
 
         Returns:
             Formatted color string.
@@ -916,7 +996,8 @@ class Color:
         if format_spec == "hsv":
             h, s, v = self.hsv
             return f"hsv({h}, {s}%, {v}%)"
+        if format_spec == "oklch":
+            return self.css_oklch
         raise ValueError(
-            f"Unknown format spec {format_spec!r}. "
-            "Use 'hex', 'rgb', 'hsl', or 'hsv'."
+            f"Unknown format spec {format_spec!r}. Use 'hex', 'rgb', 'hsl', 'hsv', or 'oklch'."
         )

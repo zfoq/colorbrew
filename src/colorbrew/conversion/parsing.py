@@ -157,9 +157,7 @@ def _validate_rgb(r: int, g: int, b: int) -> None:
                 f"{name} must be an integer, got {type(val).__name__}"
             )
         if val < 0 or val > 255:
-            raise ColorValueError(
-                f"{name} must be 0-255, got {val}"
-            )
+            raise ColorValueError(f"{name} must be 0-255, got {val}")
 
 
 def _validate_hsl(h: int, s: int, lit: int) -> None:

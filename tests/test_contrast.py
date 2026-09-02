@@ -116,6 +116,7 @@ class TestMeetsAaa:
         # Gray on white typically doesn't meet 7.0
         assert meets_aaa((150, 150, 150), (255, 255, 255)) is False
 
+
 class TestWcagReport:
     """Test WCAG summary reporting."""
 

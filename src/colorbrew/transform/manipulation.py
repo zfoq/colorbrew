@@ -138,9 +138,7 @@ def mix(
     )
 
 
-def shade(
-    r: int, g: int, b: int, amount: float = 0.5
-) -> tuple[int, int, int]:
+def shade(r: int, g: int, b: int, amount: float = 0.5) -> tuple[int, int, int]:
     """Mix a color with black to create a shade.
 
     Args:
@@ -155,9 +153,7 @@ def shade(
     return mix((r, g, b), (0, 0, 0), amount)
 
 
-def tint(
-    r: int, g: int, b: int, amount: float = 0.5
-) -> tuple[int, int, int]:
+def tint(r: int, g: int, b: int, amount: float = 0.5) -> tuple[int, int, int]:
     """Mix a color with white to create a tint.
 
     Args:
@@ -172,9 +168,7 @@ def tint(
     return mix((r, g, b), (255, 255, 255), amount)
 
 
-def tone(
-    r: int, g: int, b: int, amount: float = 0.5
-) -> tuple[int, int, int]:
+def tone(r: int, g: int, b: int, amount: float = 0.5) -> tuple[int, int, int]:
     """Mix a color with gray to create a tone.
 
     Args:

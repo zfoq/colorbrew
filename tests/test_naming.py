@@ -1,10 +1,10 @@
 """Tests for colorbrew.naming — reverse color name lookup across palettes."""
 
+import pytest
+
 from colorbrew.analysis.naming import (
+    find_closest,
     find_closest_in_palette,
-    find_closest_material,
-    find_closest_name,
-    find_closest_tailwind,
 )
 
 
@@ -20,103 +20,55 @@ class TestFindClosestInPalette:
         assert match.distance == 0.0
         assert match.exact is True
 
+    def test_accepts_palette_object(self):
+        """Find an exact match when a Palette object is passed."""
+        from colorbrew.data import get_palette
 
-class TestFindClosestName:
-    """Test find_closest_name lookup."""
+        palette = get_palette("tailwind")
+        match = find_closest_in_palette(0x0E, 0xA5, 0xE9, palette)
+        assert match.name == "sky-500"
+        assert match.exact is True
 
-    def test_exact_red(self):
-        """Find exact match for pure red."""
-        match = find_closest_name(255, 0, 0)
+
+class TestFindClosest:
+    """Test registry-aware find_closest lookup."""
+
+    def test_exact_css_red(self):
+        """Find exact match for pure red in CSS system."""
+        match = find_closest(255, 0, 0, system="css")
         assert match.name == "red"
         assert match.hex == "#ff0000"
         assert match.distance == 0.0
         assert match.exact is True
 
-    def test_exact_black(self):
-        """Find exact match for black."""
-        match = find_closest_name(0, 0, 0)
-        assert match.name == "black"
-        assert match.exact is True
-
-    def test_exact_white(self):
-        """Find exact match for white."""
-        match = find_closest_name(255, 255, 255)
-        assert match.name == "white"
-        assert match.exact is True
-
-    def test_near_match(self):
-        """Find a non-exact match with distance > 0."""
-        match = find_closest_name(52, 152, 219)
-        assert isinstance(match.name, str)
-        assert match.distance > 0
-        assert match.exact is False
-
-    def test_returns_namedtuple(self):
-        """Return a NameMatch with all expected fields."""
-        match = find_closest_name(100, 100, 100)
-        assert hasattr(match, "name")
-        assert hasattr(match, "hex")
-        assert hasattr(match, "distance")
-        assert hasattr(match, "exact")
-
-
-class TestFindClosestTailwind:
-    """Test find_closest_tailwind lookup."""
-
-    def test_exact_tailwind_red_500(self):
-        """Find exact match for Tailwind red-500 (#ef4444)."""
-        match = find_closest_tailwind(0xEF, 0x44, 0x44)
-        assert match.name == "red-500"
-        assert match.exact is True
-
     def test_exact_tailwind_sky_500(self):
-        """Find exact match for Tailwind sky-500 (#0ea5e9)."""
-        match = find_closest_tailwind(0x0E, 0xA5, 0xE9)
+        """Find exact match for Tailwind sky-500."""
+        match = find_closest(0x0E, 0xA5, 0xE9, system="tailwind")
         assert match.name == "sky-500"
         assert match.exact is True
 
-    def test_near_match(self):
-        """Find a non-exact match with distance > 0."""
-        match = find_closest_tailwind(52, 152, 219)
-        assert isinstance(match.name, str)
-        assert match.distance > 0
-        assert match.exact is False
-
-    def test_returns_namedtuple(self):
-        """Return a NameMatch with all expected fields."""
-        match = find_closest_tailwind(100, 100, 100)
-        assert hasattr(match, "name")
-        assert hasattr(match, "hex")
-        assert hasattr(match, "distance")
-        assert hasattr(match, "exact")
-
-
-class TestFindClosestMaterial:
-    """Test find_closest_material lookup."""
-
     def test_exact_material_blue_500(self):
-        """Find exact match for Material blue-500 (#2196f3)."""
-        match = find_closest_material(0x21, 0x96, 0xF3)
+        """Find exact match for Material blue-500."""
+        match = find_closest(0x21, 0x96, 0xF3, system="material")
         assert match.name == "blue-500"
         assert match.exact is True
 
-    def test_exact_material_red_500(self):
-        """Find exact match for Material red-500 (#f44336)."""
-        match = find_closest_material(0xF4, 0x43, 0x36)
-        assert match.name == "red-500"
-        assert match.exact is True
-
     def test_near_match(self):
         """Find a non-exact match with distance > 0."""
-        match = find_closest_material(52, 152, 219)
+        match = find_closest(52, 152, 219, system="css")
         assert isinstance(match.name, str)
         assert match.distance > 0
         assert match.exact is False
 
     def test_returns_namedtuple(self):
         """Return a NameMatch with all expected fields."""
-        match = find_closest_material(100, 100, 100)
+        match = find_closest(100, 100, 100, system="css")
         assert hasattr(match, "name")
         assert hasattr(match, "hex")
         assert hasattr(match, "distance")
         assert hasattr(match, "exact")
+
+    def test_unknown_system_raises(self):
+        """Raise for an unregistered system name."""
+        with pytest.raises(Exception):  # ColorValueError from registry
+            find_closest(0, 0, 0, system="notasystem")

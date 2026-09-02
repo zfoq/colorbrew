@@ -17,3 +17,7 @@ class ColorValueError(ColorBrewError, ValueError):
 
 class ColorParseError(ColorBrewError, ValueError):
     """Raised when an input string cannot be parsed as a color."""
+
+
+class PaletteError(ColorBrewError):
+    """Raised when palette data or registry access is invalid."""

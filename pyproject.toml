@@ -1,6 +1,6 @@
 [project]
 name = "colorbrew"
-version = "0.10.0"
+version = "0.11.0"
 description = "A lightweight, zero-dependency Python library for color manipulation."
 readme = "README.md"
 license = "MIT"
@@ -48,7 +48,7 @@ dev = [
 ]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py310"
 line-length = 88
 src = ["src"]
 

@@ -4,6 +4,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/colorbrew)](https://pypi.org/project/colorbrew/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/zfoq/colorbrew/blob/main/LICENSE)
 [![Tests](https://github.com/zfoq/colorbrew/actions/workflows/ci.yml/badge.svg)](https://github.com/zfoq/colorbrew/actions)
+[![Palette integration](https://github.com/zfoq/colorbrew/actions/workflows/palette-integration.yml/badge.svg)](https://github.com/zfoq/colorbrew/actions)
 [![PyPI downloads](https://img.shields.io/pypi/dm/colorbrew)](https://pypi.org/project/colorbrew/)
 
 A lightweight, zero-dependency Python library for color manipulation, conversion, and accessibility analysis.
@@ -18,6 +19,12 @@ brand.meets_aa(Color("white"))                 # True
 brand.suggest_text_color()                     # Color('#000000')
 brand.scale()[500]                             # Color('#2986c7')
 ```
+
+## Docs
+
+- [Getting started](docs/01-getting-started/README.md) covers install, imports, first `Color`, `Palette`, and `Theme` examples, included systems, and offline-by-default fetching.
+- [Color, Palette, and Theme](docs/02-architecture/color-and-palette.md) covers the public API and runnable examples.
+- [Color systems](docs/03-specifications/color-systems.md) covers included CSS named colors, Tailwind, Material, ColorBrewer, bundled data, remote loading, and cache behavior.
 
 ## Why ColorBrew?
 
@@ -64,16 +71,16 @@ c = Color("hsla(204, 70%, 53%, 0.5)")
 # From CSS named colors
 c = Color("cornflowerblue")
 
+# From registered color systems
+c = Color.named("tailwind:sky-500")
+c = Color.named("blue-600", system="material")
+
 # From other color spaces
 c = Color.from_hsl(204, 70, 53)
 c = Color.from_hsv(204, 76, 86)
 c = Color.from_cmyk(76, 31, 0, 14)
 c = Color.from_lab(61.0, -3.4, -38.3)
-
-# From built-in palettes
-c = Color.from_tailwind("sky-500")
-c = Color.from_material("blue-600")
-c = Color.from_name("steelblue")
+c = Color.from_oklch(0.62, 0.14, 250)
 
 # Random
 c = Color.random()
@@ -240,30 +247,75 @@ Output:
 --brand-950: #091c2c;
 ```
 
-### Reverse Name Lookup
+### The `Palette` class
 
-Find the closest named color from built-in palettes:
+A `Palette` is an ordered set (and sequence) of `Color` objects. Build one from
+`Color` instances, hex strings, CSS named colors, or RGB tuples:
 
 ```python
-match = Color("#3498db").closest_name()
-match.name       # "dodgerblue"
-match.hex        # "#1e90ff"
-match.distance   # 42.94
-match.exact      # False
+from colorbrew import Color, Palette
 
-# Tailwind and Material Design lookups
-Color("#3498db").closest_tailwind()    # NameMatch("sky-500", ...)
-Color("#3498db").closest_material()    # NameMatch("blue-400", ...)
-
-# Custom palette lookup
-palette = {"brand": "#3498db", "accent": "#e74c3c"}
-Color("#338fd8").nearest_palette(palette)  # NameMatch("brand", ...)
-
-# Use perceptual distance for better accuracy
-Color("#3498db").closest_name(method="ciede2000")
+palette = Palette([Color("#3498db"), "#e74c3c", "gold", (0, 128, 0)])
+palette.colors           # (Color('#3498db'), Color('#e74c3c'), Color('#ffd700'), Color('#008000'))
+palette.hexes            # ['#3498db', '#e74c3c', '#ffd700', '#008000']
+palette[0]               # Color('#3498db')
+len(palette)             # 4
+Color("gold") in palette # True
 ```
 
-Available palettes: 148 CSS named colors, 264 Tailwind CSS colors, 210 Material Design colors.
+Palette generation methods that live on `Color` are also available on a
+`Palette`, operating on each member:
+
+```python
+palette.gradient(steps=5)           # gradient stitched between consecutive colors
+palette.complementary()             # complement of each color
+palette.analogous()                 # analogous sets for each color
+palette.scale()[500]                # Palette of 500-step shades
+```
+
+Palettes also support set-style union:
+
+```python
+Palette(["red", "green"]) | Palette(["green", "blue"])
+```
+
+### Names, Classification, and Systems
+
+Find registered names and perceptual classes:
+
+```python
+from colorbrew import Color, Palette, Theme, configure, get_palette, list_systems
+
+Color("#336699").names()       # nearest names in registered flat systems
+Color("#336699").classify()    # ColorClass(family='azure', tone='muted-dark', ...)
+
+Color.named("tailwind:sky-500")
+Color.named("blue-600", system="material")
+```
+
+Registered systems include CSS named colors, Tailwind CSS, Material Design, and ColorBrewer:
+
+```python
+list_systems()                         # ('css', 'tailwind', 'material', 'colorbrewer')
+Palette.from_system("tailwind")["sky-500"]
+Palette(["#336699", "#cc9933"]).to_system("material")
+get_palette("colorbrewer:blues-3").hexes
+```
+
+A `Theme` is a role-keyed palette for design tokens:
+
+```python
+theme = Theme.from_color("#336699", scheme="triadic")
+theme.primary.hex                       # '#336699'
+theme.to_css_vars()                     # '--cb-primary: #336699;\n...'
+```
+
+Bundled data is the default. Optional remote palette loading stays off until you opt in:
+
+```python
+configure(allow_network=True)
+get_palette("tailwind", version="v4", source="api", allow_cache=True)
+```
 
 ---
 
@@ -313,9 +365,6 @@ accessible.hex                   # darker shade that passes 4.5:1
 
 # Large text uses the lower WCAG threshold automatically
 accessible_large = bg.find_accessible_color(brand, level="aa", large=True)
-
-# Alias with a clearer intent-focused name
-accessible = bg.adjust_contrast(brand)
 
 # AAA level
 accessible = bg.find_accessible_color(brand, level="aaa")
@@ -427,14 +476,14 @@ For cases where you don't need the full `Color` class:
 
 ```python
 from colorbrew import (
-    hex_to_rgb, rgb_to_hex,
+    hex_to_rgb, rgb_to_hex as as_hex,
     hsl_to_rgb, rgb_to_hsl,
     hsv_to_rgb, rgb_to_hsv,
     cmyk_to_rgb, rgb_to_cmyk,
     rgb_to_lab, lab_to_rgb,
 )
 
-rgb_to_hex(52, 152, 219)      # "#3498db"
+as_hex(52, 152, 219)          # "#3498db"
 hex_to_rgb("#3498db")          # (52, 152, 219)
 rgb_to_hsl(255, 0, 0)         # (0, 100, 50)
 hsl_to_rgb(0, 100, 50)        # (255, 0, 0)
@@ -527,6 +576,17 @@ uv sync
 uv run pytest
 uv run ruff check src/
 ```
+
+### Integration tests
+
+Palette integration tests exercise the opt-in network palette loaders.
+They are skipped by default so normal local runs stay offline and fast:
+
+```bash
+COLORBREW_RUN_INTEGRATION_TESTS=1 uv run pytest tests/test_palette_integration.py
+```
+
+A scheduled GitHub Actions workflow runs these tests weekly.
 
 ## Contributing
 

@@ -24,11 +24,7 @@ def relative_luminance(r: int, g: int, b: int) -> float:
     Returns:
         Luminance as a float between 0.0 (black) and 1.0 (white).
     """
-    return (
-        0.2126 * _linearize(r)
-        + 0.7152 * _linearize(g)
-        + 0.0722 * _linearize(b)
-    )
+    return 0.2126 * _linearize(r) + 0.7152 * _linearize(g) + 0.0722 * _linearize(b)
 
 
 def is_light(r: int, g: int, b: int) -> bool:
@@ -59,9 +55,7 @@ def is_dark(r: int, g: int, b: int) -> bool:
     return relative_luminance(r, g, b) <= 0.5
 
 
-def contrast_ratio(
-    rgb1: tuple[int, int, int], rgb2: tuple[int, int, int]
-) -> float:
+def contrast_ratio(rgb1: tuple[int, int, int], rgb2: tuple[int, int, int]) -> float:
     """Calculate WCAG contrast ratio between two colors.
 
     Args:
@@ -142,7 +136,9 @@ def wcag_report(
 
 
 def suggest_text_color(
-    r: int, g: int, b: int,
+    r: int,
+    g: int,
+    b: int,
 ) -> tuple[int, int, int]:
     """Suggest black or white text for readability on a given background.
 

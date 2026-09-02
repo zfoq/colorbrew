@@ -7,10 +7,25 @@ from colorbrew.data.material_colors import MATERIAL_COLORS
 _HEX_RE = re.compile(r"^#[0-9a-f]{6}$")
 
 _FAMILIES = [
-    "red", "pink", "purple", "deep-purple", "indigo",
-    "blue", "light-blue", "cyan", "teal", "green",
-    "light-green", "lime", "yellow", "amber", "orange",
-    "deep-orange", "brown", "grey", "blue-grey",
+    "red",
+    "pink",
+    "purple",
+    "deep-purple",
+    "indigo",
+    "blue",
+    "light-blue",
+    "cyan",
+    "teal",
+    "green",
+    "light-green",
+    "lime",
+    "yellow",
+    "amber",
+    "orange",
+    "deep-orange",
+    "brown",
+    "grey",
+    "blue-grey",
 ]
 
 _SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]

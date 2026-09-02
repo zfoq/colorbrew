@@ -25,37 +25,56 @@ from colorbrew.conversion.converters import (
     rgb_to_hsl,
     rgb_to_hsv,
 )
-from colorbrew.exceptions import ColorBrewError, ColorParseError, ColorValueError
-from colorbrew.types import (
-    BlendMode,
-    ColorVisionDeficiency,
-    DistanceMethod,
-    NameMatch,
-    WcagReport,
+from colorbrew.data import (
+    get_system,
+    list_palettes,
+    list_systems,
+    register_system,
+    resolve_name,
 )
+from colorbrew.data.registry import get_palette
+from colorbrew.exceptions import (
+    ColorBrewError,
+    ColorParseError,
+    ColorValueError,
+    PaletteError,
+)
+from colorbrew.palette import Palette, Theme
+from colorbrew.settings import Settings, configure, settings_context
+from colorbrew.types import ColorClass, NameMatch, WcagReport
 
 __version__ = _version("colorbrew")
 
 __all__ = [
-    "BlendMode",
     "Color",
     "ColorBrewError",
+    "ColorClass",
     "ColorParseError",
     "ColorValueError",
-    "ColorVisionDeficiency",
-    "DistanceMethod",
     "NameMatch",
+    "Palette",
+    "PaletteError",
+    "Settings",
+    "Theme",
     "WcagReport",
     "cmyk_to_rgb",
+    "configure",
     "delta_e_76",
     "delta_e_2000",
+    "get_palette",
+    "get_system",
     "hex_to_rgb",
     "hsl_to_rgb",
     "hsv_to_rgb",
     "lab_to_rgb",
+    "list_palettes",
+    "list_systems",
+    "register_system",
+    "resolve_name",
     "rgb_to_cmyk",
     "rgb_to_hex",
     "rgb_to_hsl",
     "rgb_to_hsv",
     "rgb_to_lab",
+    "settings_context",
 ]

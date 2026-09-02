@@ -7,11 +7,28 @@ from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 _HEX_RE = re.compile(r"^#[0-9a-f]{6}$")
 
 _FAMILIES = [
-    "slate", "gray", "zinc", "neutral", "stone",
-    "red", "orange", "amber", "yellow", "lime",
-    "green", "emerald", "teal", "cyan", "sky",
-    "blue", "indigo", "violet", "purple", "fuchsia",
-    "pink", "rose",
+    "slate",
+    "gray",
+    "zinc",
+    "neutral",
+    "stone",
+    "red",
+    "orange",
+    "amber",
+    "yellow",
+    "lime",
+    "green",
+    "emerald",
+    "teal",
+    "cyan",
+    "sky",
+    "blue",
+    "indigo",
+    "violet",
+    "purple",
+    "fuchsia",
+    "pink",
+    "rose",
 ]
 
 _SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
