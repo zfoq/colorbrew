@@ -16,8 +16,7 @@ from typing import Any
 
 import pytest
 
-from colorbrew import get_palette
-from colorbrew.data import refresh_palette
+from colorbrew.data import get_palette, refresh_palette
 from colorbrew.data.material_colors import MATERIAL_COLORS
 from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 
