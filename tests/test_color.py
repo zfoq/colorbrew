@@ -491,6 +491,25 @@ class TestColorAccessibility:
         adjusted = bg.find_accessible_color(Color(140, 140, 140), large=True)
         assert bg.meets_aa(adjusted, large=True) is True
 
+    def test_suggest_text_color_dark_background(self):
+        """Black background suggests white text."""
+        assert Color(0, 0, 0).suggest_text_color().rgb == (255, 255, 255)
+
+    def test_suggest_text_color_light_background(self):
+        """White background suggests black text."""
+        assert Color(255, 255, 255).suggest_text_color().rgb == (0, 0, 0)
+
+    def test_suggest_text_color_medium_blue(self):
+        """Medium blue suggests readable text."""
+        c = Color(52, 152, 219)
+        text = c.suggest_text_color()
+        assert text.rgb in ((0, 0, 0), (255, 255, 255))
+        assert c.contrast(text) >= 3.0
+
+    def test_suggest_text_color_yellow(self):
+        """Bright yellow suggests black text."""
+        assert Color(255, 255, 0).suggest_text_color().rgb == (0, 0, 0)
+
 
 class TestColorTemperature:
     """Test temperature methods on Color."""
@@ -636,6 +655,21 @@ class TestColorGradient:
         assert result == [start]
         assert result[0].alpha == 0.3
 
+    def test_lab_gradient_midpoint_differs_from_rgb(self):
+        """Lab midpoint differs from RGB midpoint."""
+        c1 = Color(255, 0, 0)
+        c2 = Color(0, 0, 255)
+        rgb_mid = c1.gradient(c2, steps=3)[1].rgb
+        lab_mid = c1.gradient(c2, steps=3, space="lab")[1].rgb
+        assert rgb_mid != lab_mid
+
+    def test_lab_gradient_interpolates_alpha(self):
+        """Lab gradient interpolates alpha values."""
+        c1 = Color("rgba(255, 0, 0, 1.0)")
+        c2 = Color("rgba(0, 0, 255, 0.0)")
+        grad = c1.gradient(c2, steps=3, space="lab")
+        assert abs(grad[1].alpha - 0.5) < 0.01
+
 
 class TestColorSimulateColorblind:
     """Test color blindness simulation via Color method."""
@@ -776,3 +810,225 @@ class TestColorImmutability:
         c = Color("#3498db")
         with pytest.raises(ColorValueError, match="immutable"):
             del c._rgb
+
+
+class TestColorAlpha:
+    """Test alpha channel parsing, properties, and preservation."""
+
+    def test_hex_8digit_parses_alpha(self):
+        """8-digit hex includes alpha."""
+        c = Color("#3498db80")
+        assert c.rgb == (52, 152, 219)
+        assert abs(c.alpha - 128 / 255) < 0.01
+
+    def test_hex_4digit_parses_alpha(self):
+        """4-digit hex includes alpha."""
+        c = Color("#f008")
+        assert c.rgb == (255, 0, 0)
+        assert abs(c.alpha - 136 / 255) < 0.01
+
+    def test_rgba_legacy_parses_alpha(self):
+        """Legacy rgba() parses alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.rgb == (52, 152, 219)
+        assert c.alpha == 0.5
+
+    def test_rgb_legacy_defaults_to_opaque(self):
+        """Legacy rgb() defaults to alpha 1.0."""
+        c = Color("rgb(52, 152, 219)")
+        assert c.alpha == 1.0
+
+    def test_hsla_legacy_parses_alpha(self):
+        """Legacy hsla() parses alpha."""
+        c = Color("hsla(204, 70%, 53%, 0.3)")
+        assert c.alpha == 0.3
+
+    def test_rgb_modern_space_separated(self):
+        """Modern rgb() with spaces."""
+        c = Color("rgb(52 152 219)")
+        assert c.rgb == (52, 152, 219)
+        assert c.alpha == 1.0
+
+    def test_rgb_modern_with_slash_alpha(self):
+        """Modern rgb() with slash alpha."""
+        c = Color("rgb(52 152 219 / 0.5)")
+        assert c.rgb == (52, 152, 219)
+        assert c.alpha == 0.5
+
+    def test_rgb_modern_alpha_percent(self):
+        """Modern rgb() with percent alpha."""
+        c = Color("rgb(52 152 219 / 50%)")
+        assert c.rgb == (52, 152, 219)
+        assert c.alpha == 0.5
+
+    def test_hsl_modern_deg_unit(self):
+        """Modern hsl() with deg unit."""
+        c = Color("hsl(204deg 70% 53%)")
+        assert c.alpha == 1.0
+        assert c.hsl[0] == 204
+
+    def test_hsl_modern_with_alpha(self):
+        """Modern hsl() with slash alpha."""
+        c = Color("hsl(204 70% 53% / 0.7)")
+        assert c.alpha == 0.7
+
+    def test_named_color_alpha(self):
+        """Named colors have alpha 1.0."""
+        c = Color("red")
+        assert c.alpha == 1.0
+
+    def test_rgba_property(self):
+        """RGBA property includes alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.rgba == (52, 152, 219, 0.5)
+
+    def test_hex_with_alpha(self):
+        """Translucent color returns 8-digit hex."""
+        c = Color("rgba(255, 0, 0, 0.5)")
+        assert c.hex == "#ff000080"
+
+    def test_css_rgb_with_alpha(self):
+        """Translucent color uses rgba() format."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.css_rgb == "rgba(52, 152, 219, 0.5)"
+
+    def test_css_hsl_with_alpha(self):
+        """Translucent color uses hsla() format."""
+        c = Color("hsla(204, 70%, 53%, 0.5)")
+        assert c.css_hsl == "hsla(204, 70%, 53%, 0.5)"
+
+    def test_with_alpha(self):
+        """with_alpha returns new Color with updated alpha."""
+        c = Color(255, 0, 0)
+        c2 = c.with_alpha(0.5)
+        assert c2.rgb == (255, 0, 0)
+        assert c2.alpha == 0.5
+        assert c.alpha == 1.0
+
+    def test_with_alpha_invalid(self):
+        """with_alpha rejects out-of-range values."""
+        c = Color(255, 0, 0)
+        with pytest.raises(ColorValueError):
+            c.with_alpha(1.5)
+
+    def test_opaque(self):
+        """Opaque returns Color with alpha 1.0."""
+        c = Color("rgba(255, 0, 0, 0.5)")
+        assert c.opaque.alpha == 1.0
+        assert c.opaque.rgb == (255, 0, 0)
+
+    def test_opaque_already_returns_same_instance(self):
+        """Opaque returns same instance if already opaque."""
+        c = Color(255, 0, 0)
+        assert c.opaque is c
+
+    def test_alpha_preserved_through_lighten(self):
+        """Lighten preserves alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.lighten(10).alpha == 0.5
+
+    def test_alpha_preserved_through_darken(self):
+        """Darken preserves alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.darken(10).alpha == 0.5
+
+    def test_alpha_preserved_through_saturate(self):
+        """Saturate preserves alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.saturate(10).alpha == 0.5
+
+    def test_alpha_preserved_through_invert(self):
+        """Invert preserves alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.invert().alpha == 0.5
+
+    def test_alpha_preserved_through_grayscale(self):
+        """Grayscale preserves alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.grayscale().alpha == 0.5
+
+    def test_alpha_preserved_through_complementary(self):
+        """Complementary preserves alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.complementary().alpha == 0.5
+
+    def test_alpha_preserved_through_colorblind_simulation(self):
+        """Colorblind simulation preserves alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        assert c.simulate_colorblind("protanopia").alpha == 0.5
+
+    def test_mix_interpolates_alpha(self):
+        """Mix interpolates alpha between two colors."""
+        c1 = Color("rgba(255, 0, 0, 1.0)")
+        c2 = Color("rgba(0, 0, 255, 0.0)")
+        mixed = c1.mix(c2, 0.5)
+        assert abs(mixed.alpha - 0.5) < 0.01
+
+    def test_same_rgb_different_alpha_not_equal(self):
+        """Different alpha means not equal."""
+        c1 = Color(255, 0, 0)
+        c2 = c1.with_alpha(0.5)
+        assert c1 != c2
+
+    def test_same_rgb_same_alpha_equal(self):
+        """Same RGB and alpha means equal."""
+        c1 = Color("rgba(255, 0, 0, 0.5)")
+        c2 = Color(255, 0, 0).with_alpha(0.5)
+        assert c1 == c2
+
+    def test_hash_includes_alpha(self):
+        """Different alpha produces different hash."""
+        c1 = Color(255, 0, 0)
+        c2 = c1.with_alpha(0.5)
+        assert hash(c1) != hash(c2)
+
+
+class TestColorScale:
+    """Test Tailwind-like shade scale generation."""
+
+    def test_scale_returns_11_steps(self):
+        """Scale returns 11 shade stops."""
+        c = Color("#3498db")
+        s = c.scale()
+        assert len(s) == 11
+
+    def test_scale_keys(self):
+        """Scale has correct step keys."""
+        s = Color("#3498db").scale()
+        expected_keys = {50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950}
+        assert set(s.keys()) == expected_keys
+
+    def test_scale_50_is_lightest(self):
+        """Step 50 is lighter than step 950."""
+        s = Color("#3498db").scale()
+        assert s[50].luminance > s[950].luminance
+
+    def test_scale_monotonic_luminance(self):
+        """Luminance decreases monotonically across steps."""
+        s = Color("#e74c3c").scale()
+        steps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
+        luminances = [s[k].luminance for k in steps]
+        for i in range(len(luminances) - 1):
+            assert luminances[i] >= luminances[i + 1]
+
+    def test_scale_values_are_colors(self):
+        """All scale values are Color instances."""
+        c = Color("#3498db")
+        s = c.scale()
+        for color in s.values():
+            assert isinstance(color, Color)
+
+    def test_scale_preserves_alpha(self):
+        """Scale preserves the original alpha."""
+        c = Color("rgba(52, 152, 219, 0.5)")
+        s = c.scale()
+        for color in s.values():
+            assert color.alpha == 0.5
+
+    def test_scale_preserves_hue(self):
+        """Scale preserves the hue within rounding tolerance."""
+        c = Color("#3498db")
+        base_h = c.hsl[0]
+        s = c.scale()
+        for color in s.values():
+            assert abs(color.hsl[0] - base_h) <= 2

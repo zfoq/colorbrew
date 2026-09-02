@@ -2,7 +2,11 @@
 
 import pytest
 
-from colorbrew.conversion.parsing import parse_rgb_args, parse_string
+from colorbrew.conversion.parsing import (
+    parse_rgb_args,
+    parse_string,
+    parse_string_with_alpha,
+)
 from colorbrew.exceptions import ColorParseError, ColorValueError
 
 
@@ -127,3 +131,73 @@ class TestParseRgbArgs:
         """Raise ColorValueError for boolean values."""
         with pytest.raises(ColorValueError):
             parse_rgb_args(True, 0, 0)  # type: ignore[arg-type]
+
+
+class TestParseStringAlpha:
+    """Test alpha parsing from strings."""
+
+    def test_hex_8digit(self):
+        """8-digit hex includes alpha."""
+        rgb, alpha = parse_string_with_alpha("#3498db80")
+        assert rgb == (52, 152, 219)
+        assert abs(alpha - 128 / 255) < 0.01
+
+    def test_hex_4digit(self):
+        """4-digit hex includes alpha."""
+        rgb, alpha = parse_string_with_alpha("#f008")
+        assert rgb == (255, 0, 0)
+        assert abs(alpha - 136 / 255) < 0.01
+
+    def test_rgb_legacy(self):
+        """Legacy rgba() parses alpha."""
+        rgb, alpha = parse_string_with_alpha("rgba(52, 152, 219, 0.5)")
+        assert rgb == (52, 152, 219)
+        assert alpha == 0.5
+
+    def test_rgb_modern_slash_alpha(self):
+        """Modern rgb() with slash alpha."""
+        rgb, alpha = parse_string_with_alpha("rgb(52 152 219 / 0.5)")
+        assert rgb == (52, 152, 219)
+        assert alpha == 0.5
+
+    def test_rgb_modern_percent_alpha(self):
+        """Modern rgb() with percent alpha."""
+        rgb, alpha = parse_string_with_alpha("rgb(52 152 219 / 50%)")
+        assert rgb == (52, 152, 219)
+        assert alpha == 0.5
+
+    def test_hsla_legacy(self):
+        """Legacy hsla() parses alpha."""
+        rgb, alpha = parse_string_with_alpha("hsla(204, 70%, 53%, 0.3)")
+        assert rgb == (51, 152, 219)
+        assert alpha == 0.3
+
+    def test_hsl_modern_with_alpha(self):
+        """Modern hsl() with slash alpha."""
+        rgb, alpha = parse_string_with_alpha("hsl(204 70% 53% / 0.7)")
+        assert rgb == (51, 152, 219)
+        assert alpha == pytest.approx(0.7)
+
+
+class TestParseStringModernCss:
+    """Test modern CSS Color Level 4 syntax support."""
+
+    def test_rgb_space_separated(self):
+        """Space-separated rgb() is parsed."""
+        assert parse_string("rgb(52 152 219)") == (52, 152, 219)
+
+    def test_rgb_space_with_slash_alpha(self):
+        """Space-separated rgb() with slash alpha discards alpha."""
+        assert parse_string("rgb(52 152 219 / 0.5)") == (52, 152, 219)
+
+    def test_hsl_deg_unit(self):
+        """hsl() with deg unit."""
+        assert parse_string("hsl(204deg 70% 53%)") == (51, 152, 219)
+
+    def test_hsl_space_no_deg(self):
+        """hsl() with space-separated, no deg unit."""
+        assert parse_string("hsl(204 70% 53%)") == (51, 152, 219)
+
+    def test_hsl_space_with_alpha(self):
+        """hsl() with space-separated and slash alpha."""
+        assert parse_string("hsl(204deg 70% 53% / 0.7)") == (51, 152, 219)
