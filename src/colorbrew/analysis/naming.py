@@ -18,17 +18,23 @@ from colorbrew.analysis.delta_e import (
     rgb_to_lab,
 )
 from colorbrew.conversion.converters import hex_to_rgb
-from colorbrew.data.loader import (
-    MATERIAL_COLORS,
-    NAMED_COLORS,
-    TAILWIND_COLORS,
-)
+from colorbrew.data import registry as _registry
 from colorbrew.types import DistanceMethod, NameMatch
 
-# Lazily built caches: palette id(dict) -> list of (name, hex, r, g, b)
-_rgb_cache: dict[int, list[tuple[str, str, int, int, int]]] = {}
-# palette id(dict) -> list of (name, hex, L*, a*, b*)
-_lab_cache: dict[int, list[tuple[str, str, float, float, float]]] = {}
+# Lazily built caches: stable palette key -> list of (name, hex, r, g, b)
+_rgb_cache: dict[object, list[tuple[str, str, int, int, int]]] = {}
+# Stable palette key -> list of (name, hex, L*, a*, b*)
+_lab_cache: dict[object, list[tuple[str, str, float, float, float]]] = {}
+
+
+def _palette_key(palette: Mapping[str, str]) -> object:
+    """Return a stable cache key for a palette or Palette-like object."""
+    if hasattr(palette, "system") and hasattr(palette, "version"):
+        system = getattr(palette, "system")
+        version = getattr(palette, "version")
+        source = getattr(palette, "source")
+        return ("__palette__", system, version, source)
+    return tuple(sorted(palette.items()))
 
 
 def _get_rgb_entries(
@@ -36,7 +42,7 @@ def _get_rgb_entries(
 ) -> list[tuple[str, str, int, int, int]]:
     """Return cached list of (name, hex, r, g, b) for a palette."""
     mapping = palette.as_dict() if hasattr(palette, "as_dict") else palette
-    key = id(mapping)
+    key = _palette_key(mapping)
     if key not in _rgb_cache:
         entries = []
         for name, hex_val in mapping.items():
@@ -50,7 +56,8 @@ def _get_lab_entries(
     palette: Mapping[str, str],
 ) -> list[tuple[str, str, float, float, float]]:
     """Return cached list of (name, hex, L*, a*, b*) for a palette."""
-    key = id(palette)
+    mapping = palette.as_dict() if hasattr(palette, "as_dict") else palette
+    key = _palette_key(mapping)
     if key not in _lab_cache:
         entries = []
         for name, hex_val, r, g, b in _get_rgb_entries(palette):
@@ -137,6 +144,31 @@ def find_closest_in_palette(
     return _find_closest(r, g, b, palette, method)
 
 
+def find_closest(
+    r: int,
+    g: int,
+    b: int,
+    system: str = "css",
+    method: DistanceMethod = "euclidean",
+) -> NameMatch:
+    """Find the color closest to the given RGB value in a registered system.
+
+    Args:
+        r: Red channel (0-255).
+        g: Green channel (0-255).
+        b: Blue channel (0-255).
+        system: Registered system name, e.g. ``"css"``, ``"tailwind"``,
+            or ``"material"``.
+        method: Distance algorithm — ``"euclidean"``, ``"cie76"``,
+            or ``"ciede2000"``.
+
+    Returns:
+        A NameMatch with the closest color name in the system.
+    """
+    palette = _registry.get_palette(system).as_dict()
+    return _find_closest(r, g, b, palette, method)
+
+
 def find_closest_name(
     r: int, g: int, b: int, method: DistanceMethod = "euclidean"
 ) -> NameMatch:
@@ -152,7 +184,7 @@ def find_closest_name(
     Returns:
         A NameMatch with the closest CSS color name.
     """
-    return _find_closest(r, g, b, NAMED_COLORS, method)
+    return find_closest(r, g, b, system="css", method=method)
 
 
 def find_closest_tailwind(
@@ -170,7 +202,7 @@ def find_closest_tailwind(
     Returns:
         A NameMatch with the closest Tailwind color name (e.g. ``"sky-500"``).
     """
-    return _find_closest(r, g, b, TAILWIND_COLORS, method)
+    return find_closest(r, g, b, system="tailwind", method=method)
 
 
 def find_closest_material(
@@ -188,4 +220,13 @@ def find_closest_material(
     Returns:
         A NameMatch with the closest Material color name (e.g. ``"blue-600"``).
     """
-    return _find_closest(r, g, b, MATERIAL_COLORS, method)
+    return find_closest(r, g, b, system="material", method=method)
+
+
+__all__ = [
+    "find_closest",
+    "find_closest_in_palette",
+    "find_closest_name",
+    "find_closest_tailwind",
+    "find_closest_material",
+]

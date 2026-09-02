@@ -108,56 +108,38 @@ class TestColorFromHsv:
         assert c.rgb == (0, 255, 0)
 
 
-class TestColorFromName:
-    """Test Color.from_name class method."""
+class TestColorNamed:
+    """Test Color.named class method."""
 
-    def test_known_name(self):
+    def test_known_css_name(self):
         """Create color from a known CSS name."""
-        c = Color.from_name("cornflowerblue")
+        c = Color.named("cornflowerblue")
         assert c.hex == "#6495ed"
 
     def test_case_insensitive(self):
         """Accept case-insensitive names."""
-        c = Color.from_name("CornflowerBlue")
+        c = Color.named("CornflowerBlue")
         assert c.hex == "#6495ed"
 
     def test_unknown_raises(self):
         """Raise ColorParseError for unknown names."""
         with pytest.raises(ColorParseError):
-            Color.from_name("notacolor")
+            Color.named("notacolor")
 
+    def test_with_system(self):
+        """Create color from an explicit system."""
+        c = Color.named("sky-500", system="tailwind")
+        assert c.hex == "#0ea5e9"
 
-class TestColorFromBundledPaletteSources:
-    """Test optional palette source controls on Color constructors."""
+    def test_system_prefix(self):
+        """Parse system:name prefix."""
+        c = Color.named("tailwind:sky-500")
+        assert c.hex == "#0ea5e9"
 
-    def test_from_tailwind_uses_cache_when_enabled(self, tmp_path):
-        """Load Tailwind colors from the optional cache."""
-        cache_dir = tmp_path / "cache"
-        cache_dir.mkdir()
-        (cache_dir / "tailwind.json").write_text('{"brand-500": "#112233"}\n')
-        assert Color.from_tailwind(
-            "brand-500",
-            source="cache",
-            allow_cache=True,
-            cache_dir=cache_dir,
-        ) == Color("#112233")
-
-    def test_from_material_uses_cache_when_enabled(self, tmp_path):
-        """Load Material colors from the optional cache."""
-        cache_dir = tmp_path / "cache"
-        cache_dir.mkdir()
-        (cache_dir / "material.json").write_text('{"brand-500": "#112233"}\n')
-        assert Color.from_material(
-            "brand-500",
-            source="cache",
-            allow_cache=True,
-            cache_dir=cache_dir,
-        ) == Color("#112233")
-
-    def test_from_material_rejects_disabled_network(self):
-        """Reject API reads when network access is not enabled."""
-        with pytest.raises(ColorValueError, match="network access is disabled"):
-            Color.from_material("blue-500", source="api")
+    def test_bare_name_searches_systems(self):
+        """Bare name searches registered systems in order."""
+        c = Color.named("sky-500")
+        assert c.hex == "#0ea5e9"
 
 
 class TestColorRandom:
@@ -291,6 +273,11 @@ class TestColorDunder:
         c = Color(255, 0, 0)
         assert f"{c:hsv}" == "hsv(0, 100%, 100%)"
 
+    def test_format_oklch(self):
+        """Format with 'oklch' spec."""
+        c = Color(255, 0, 0)
+        assert f"{c:oklch}".startswith("oklch(")
+
     def test_format_default(self):
         """Default format returns hex."""
         c = Color(52, 152, 219)
@@ -338,54 +325,115 @@ class TestColorCssOutput:
         assert c.css_hsl_modern() == "hsl(204 70% 53%)"
         assert c.with_alpha(0.8).css_hsl_modern() == "hsl(204 70% 53% / 0.8)"
 
+    def test_css_oklch(self):
+        """Return CSS oklch() string."""
+        c = Color(255, 0, 0)
+        assert c.css_oklch.startswith("oklch(")
+        assert c.with_alpha(0.5).css_oklch.endswith("/ 0.5)")
 
-class TestColorClosestName:
-    """Test closest_name method on Color."""
 
-    def test_returns_namedtuple(self):
-        """Return a NameMatch with name and distance."""
-        match = Color("#1e90ff").closest_name()
+class TestColorClassify:
+    """Test Color.classify method."""
+
+    def test_red_family(self):
+        """Pure red classifies as red family."""
+        result = Color(255, 0, 0).classify()
+        assert result.family == "red"
+
+    def test_returns_color_class(self):
+        """classify returns a ColorClass namedtuple."""
+        from colorbrew.types import ColorClass
+
+        result = Color(52, 152, 219).classify()
+        assert isinstance(result, ColorClass)
+
+
+class TestColorOklab:
+    """Test OKLab/OKLCH properties and constructors."""
+
+    def test_oklab_three_floats(self):
+        """oklab property returns three floats."""
+        result = Color("#3498db").oklab
+        assert len(result) == 3
+        assert all(isinstance(v, float) for v in result)
+
+    def test_oklch_three_floats(self):
+        """oklch property returns three floats."""
+        result = Color("#3498db").oklch
+        assert len(result) == 3
+        assert all(isinstance(v, float) for v in result)
+
+    def test_from_oklch_round_trips_red(self):
+        """Creating a color from its OKLCH value stays very close to red."""
+        original = Color(255, 0, 0)
+        recreated = Color.from_oklch(*original.oklch)
+        assert recreated.distance(original) < 2.0
+
+    def test_from_oklab_round_trips_gray(self):
+        """Creating a color from its OKLab value stays very close to gray."""
+        original = Color(128, 128, 128)
+        recreated = Color.from_oklab(*original.oklab)
+        assert recreated.distance(original, method="cie76") < 1.0
+
+    def test_from_oklch_rejects_invalid_chroma(self):
+        """Negative chroma raises ColorValueError."""
+        with pytest.raises(ColorValueError):
+            Color.from_oklch(0.5, -0.1, 0.0)
+
+
+class TestColorNearest:
+    """Test Color.nearest and Color.names registry lookups."""
+
+    def test_nearest_css_system(self):
+        """nearest finds closest CSS named color."""
+        match = Color("#1e90ff").nearest("css")
         assert match.name == "dodgerblue"
         assert isinstance(match.distance, float)
 
-
-class TestColorPaletteLookups:
-    """Test optional palette source controls on reverse lookups."""
-
-    def test_closest_tailwind_uses_cache_when_enabled(self, tmp_path):
-        """Load cached Tailwind palette data for lookup."""
-        cache_dir = tmp_path / "cache"
-        cache_dir.mkdir()
-        (cache_dir / "tailwind.json").write_text('{"brand-500": "#112233"}\n')
-        match = Color("#112233").closest_tailwind(
-            source="cache",
-            allow_cache=True,
-            cache_dir=cache_dir,
-        )
-        assert match.name == "brand-500"
+    def test_nearest_tailwind_system(self):
+        """nearest finds closest Tailwind color."""
+        match = Color(0xEF, 0x44, 0x44).nearest("tailwind")
+        assert match.name == "red-500"
         assert match.exact is True
 
-    def test_closest_material_uses_cache_when_enabled(self, tmp_path):
-        """Load cached Material palette data for lookup."""
-        cache_dir = tmp_path / "cache"
-        cache_dir.mkdir()
-        (cache_dir / "material.json").write_text('{"brand-500": "#112233"}\n')
-        match = Color("#112233").closest_material(
-            source="cache",
-            allow_cache=True,
-            cache_dir=cache_dir,
-        )
-        assert match.name == "brand-500"
-        assert match.exact is True
+    def test_nearest_custom_mapping(self):
+        """nearest accepts a custom name-to-hex mapping."""
+        palette = {"brand": "#3498db", "accent": "#e74c3c"}
+        match = Color(50, 150, 220).nearest(palette)
+        assert match.name == "brand"
 
-    def test_nearest_palette_accepts_palette_object(self):
-        """nearest_palette accepts a Palette in addition to a plain dict."""
-        from colorbrew.data import get_palette
+    def test_nearest_rejects_empty_mapping(self):
+        """Reject empty custom mappings."""
+        with pytest.raises(ColorValueError, match="Palette must not be empty"):
+            Color(50, 150, 220).nearest({})
 
-        palette = get_palette("tailwind")
-        match = Color("#0ea5e9").nearest_palette(palette)
-        assert match.name == "sky-500"
-        assert match.exact is True
+    def test_names_returns_system_matches(self):
+        """names returns a NameMatch per system."""
+        matches = Color(255, 0, 0).names(systems=["css", "tailwind"])
+        assert "css" in matches
+        assert "tailwind" in matches
+        assert matches["css"].name == "red"
+        assert matches["tailwind"].name == "red-600"
+
+
+class TestColorLegacyNamingPlaceholder:
+    """Legacy Color naming constructors and methods have been removed."""
+
+    def test_from_name_removed(self):
+        """Color.from_name is no longer available."""
+        assert not hasattr(Color, "from_name")
+
+    def test_closest_name_removed(self):
+        """Color.closest_name is no longer available."""
+        assert not hasattr(Color, "closest_name")
+
+    def test_from_tailwind_removed(self):
+        """Color.from_tailwind is no longer available."""
+        assert not hasattr(Color, "from_tailwind")
+
+    def test_from_material_removed(self):
+        """Color.from_material is no longer available."""
+        assert not hasattr(Color, "from_material")
 
 
 class TestColorAccessibility:
@@ -431,16 +479,16 @@ class TestColorAccessibility:
         assert report.aa is False
         assert report.aa_large is True
 
-    def test_adjust_contrast(self):
+    def test_find_accessible_color(self):
         """Adjust a target color until it meets AA."""
         bg = Color(255, 255, 255)
-        adjusted = bg.adjust_contrast(Color(200, 200, 200))
+        adjusted = bg.find_accessible_color(Color(200, 200, 200))
         assert bg.meets_aa(adjusted) is True
 
-    def test_adjust_contrast_large(self):
+    def test_find_accessible_color_large(self):
         """Allow the lower large-text threshold when requested."""
         bg = Color(255, 255, 255)
-        adjusted = bg.adjust_contrast(Color(140, 140, 140), large=True)
+        adjusted = bg.find_accessible_color(Color(140, 140, 140), large=True)
         assert bg.meets_aa(adjusted, large=True) is True
 
 
@@ -608,49 +656,6 @@ class TestColorSimulateColorblind:
             Color(255, 0, 0).simulate_colorblind("invalid")
 
 
-class TestColorFromTailwind:
-    """Test Color.from_tailwind constructor."""
-
-    def test_known_color(self):
-        """Create from a known Tailwind color."""
-        c = Color.from_tailwind("sky-500")
-        assert c.hex == "#0ea5e9"
-
-    def test_case_insensitive(self):
-        """Tailwind names are case-insensitive."""
-        c = Color.from_tailwind("Sky-500")
-        assert c.hex == "#0ea5e9"
-
-    def test_unknown_raises(self):
-        """Raise ColorParseError for unknown Tailwind name."""
-        with pytest.raises(ColorParseError):
-            Color.from_tailwind("nonexistent-500")
-
-
-class TestColorFromMaterial:
-    """Test Color.from_material constructor."""
-
-    def test_known_color(self):
-        """Create from a known Material color."""
-        c = Color.from_material("blue-500")
-        assert c.hex == "#2196f3"
-
-    def test_case_insensitive(self):
-        """Material names are case-insensitive."""
-        c = Color.from_material("Blue-500")
-        assert c.hex == "#2196f3"
-
-    def test_deep_purple(self):
-        """Multi-word family names work."""
-        c = Color.from_material("deep-purple-500")
-        assert c.hex == "#673ab7"
-
-    def test_unknown_raises(self):
-        """Raise ColorParseError for unknown Material name."""
-        with pytest.raises(ColorParseError):
-            Color.from_material("nonexistent-500")
-
-
 class TestColorFromKelvin:
     """Test Color.from_kelvin class method."""
 
@@ -663,38 +668,6 @@ class TestColorFromKelvin:
         """Reject non-integer Kelvin input."""
         with pytest.raises(ColorValueError):
             Color.from_kelvin(6500.0)
-
-
-class TestColorClosestTailwind:
-    """Test Color.closest_tailwind method."""
-
-    def test_returns_namematch(self):
-        """Method returns a NameMatch."""
-        match = Color(0xEF, 0x44, 0x44).closest_tailwind()
-        assert match.name == "red-500"
-        assert match.exact is True
-
-    def test_non_exact(self):
-        """Non-exact match has distance > 0."""
-        match = Color(100, 100, 100).closest_tailwind()
-        assert match.distance > 0
-        assert match.exact is False
-
-
-class TestColorClosestMaterial:
-    """Test Color.closest_material method."""
-
-    def test_returns_namematch(self):
-        """Method returns a NameMatch."""
-        match = Color(0x21, 0x96, 0xF3).closest_material()
-        assert match.name == "blue-500"
-        assert match.exact is True
-
-    def test_non_exact(self):
-        """Non-exact match has distance > 0."""
-        match = Color(100, 100, 100).closest_material()
-        assert match.distance > 0
-        assert match.exact is False
 
 
 class TestColorFromLab:
@@ -730,22 +703,6 @@ class TestColorLab:
         """L* is between 0 and 100 for any color."""
         ls, _, _ = Color(52, 152, 219).lab
         assert 0 <= ls <= 100
-
-
-class TestColorNearestPalette:
-    """Test custom palette lookup on Color."""
-
-    def test_nearest_palette(self):
-        """Find the closest entry in a custom palette."""
-        palette = {"brand": "#3498db", "accent": "#e74c3c"}
-        match = Color(50, 150, 220).nearest_palette(palette)
-        assert match.name == "brand"
-        assert match.exact is False
-
-    def test_nearest_palette_rejects_empty_palette(self):
-        """Reject empty custom palettes."""
-        with pytest.raises(ColorValueError, match="Palette must not be empty"):
-            Color(50, 150, 220).nearest_palette({})
 
 
 class TestColorDistance:
@@ -784,28 +741,6 @@ class TestColorDistance:
         assert c1.distance(c2) == pytest.approx(c2.distance(c1))
 
 
-class TestColorClosestWithMethod:
-    """Test closest_* methods with different distance methods."""
-
-    def test_closest_name_ciede2000(self):
-        """closest_name with ciede2000 method returns a result."""
-        match = Color(255, 0, 0).closest_name(method="ciede2000")
-        assert isinstance(match.name, str)
-        assert match.exact is True
-
-    def test_closest_tailwind_cie76(self):
-        """closest_tailwind with cie76 method returns a result."""
-        match = Color(0xEF, 0x44, 0x44).closest_tailwind(method="cie76")
-        assert match.name == "red-500"
-        assert match.exact is True
-
-    def test_closest_material_euclidean(self):
-        """closest_material with euclidean method returns a result."""
-        match = Color(0x21, 0x96, 0xF3).closest_material(method="euclidean")
-        assert match.name == "blue-500"
-        assert match.exact is True
-
-
 class TestColorImmutability:
     """Test that Color operations never modify the original."""
 
@@ -829,3 +764,15 @@ class TestColorImmutability:
         c = Color("#3498db")
         with pytest.raises(AttributeError):
             c.custom_attr = "nope"  # type: ignore[attr-defined]
+
+    def test_post_init_mutation_raises(self):
+        """Setting an attribute after init raises ColorValueError."""
+        c = Color("#3498db")
+        with pytest.raises(ColorValueError, match="immutable"):
+            c._rgb = (0, 0, 0)  # type: ignore[misc]
+
+    def test_post_init_deletion_raises(self):
+        """Deleting an attribute after init raises ColorValueError."""
+        c = Color("#3498db")
+        with pytest.raises(ColorValueError, match="immutable"):
+            del c._rgb

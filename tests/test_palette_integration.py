@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 
-from colorbrew import Color, get_palette, refresh_palette
+from colorbrew import get_palette, refresh_palette
 from colorbrew.data.material_colors import MATERIAL_COLORS
 from colorbrew.data.tailwind_colors import TAILWIND_COLORS
 
@@ -105,30 +105,6 @@ def test_get_palette_from_remote_source(
     assert palette.source == "api"
     assert expected_key in palette
     assert palette[expected_key].startswith("#")
-
-
-@pytest.mark.parametrize(
-    ("family", "name", "path", "constructor"),
-    [
-        ("material", "blue-600", "/material.json", Color.from_material),
-        ("tailwind", "sky-500", "/tailwind.json", Color.from_tailwind),
-    ],
-)
-def test_color_from_remote_palette(
-    family: str,
-    name: str,
-    path: str,
-    constructor,
-    palette_server: str,
-) -> None:
-    """Color constructors can resolve names against an external palette."""
-    color = constructor(
-        name,
-        source="api",
-        allow_network=True,
-        url=f"{palette_server}{path}",
-    )
-    assert color.hex == get_palette(family, source="bundled")[name]
 
 
 @pytest.mark.parametrize(
