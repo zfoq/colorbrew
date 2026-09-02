@@ -29,6 +29,13 @@ def _name(name: str | None) -> str | None:
         raise PaletteError("Palette names must not be empty.")
     return normalized
 
+def _metadata(source: "Palette", *, kind: str | None = None) -> dict[str, object]:
+    return {
+        "kind": source.kind if kind is None else kind,
+        "system": source.system,
+        "version": source.version,
+        "source": source.source,
+    }
 
 class Palette:
     """An immutable ordered collection of colors."""
@@ -134,10 +141,7 @@ class Palette:
         return Palette(
             colors,
             names=self._names if names is None else names,
-            kind=self._kind if kind is None else kind,
-            system=self._system,
-            version=self._version,
-            source=self._source,
+            **_metadata(self, kind=kind),
         )
 
     @overload
@@ -354,3 +358,90 @@ class Palette:
 
     def __repr__(self) -> str:
         return f"Palette({self.hexes!r})"
+
+class Theme(Palette):
+    """A role-keyed Palette."""
+
+    def __init__(
+        self,
+        colors: Mapping[str, ColorLike],
+        *,
+        kind: str = "theme",
+        system: str | None = None,
+        version: str | None = None,
+        source: str = "custom",
+    ) -> None:
+        if not colors:
+            raise PaletteError("Theme must contain at least one role.")
+        roles = tuple(_name(role) for role in colors)
+        if len(set(roles)) != len(roles):
+            raise PaletteError("Theme roles must be unique.")
+        super().__init__(colors.values(), names=roles, kind=kind, system=system, version=version, source=source)
+
+    @property
+    def roles(self) -> tuple[str, ...]:
+        return self._names  # type: ignore[return-value]
+
+    def __getattr__(self, name: str) -> object:
+        if name.startswith("_") or not name.isidentifier():
+            raise AttributeError(name)
+        try:
+            return self[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+    def _replace(self, colors: Iterable[ColorLike], *, names: Iterable[str | None] | None = None, kind: str | None = None) -> Theme:
+        roles = self.roles if names is None else tuple(_name(n) for n in names)
+        return Theme(dict(zip(roles, colors, strict=True)), **_metadata(self, kind=kind or "theme"))
+
+    def with_role(self, role: str, color: ColorLike) -> Theme:
+        normalized = _name(role)
+        values = dict(zip(self.roles, self._colors, strict=True))
+        values[normalized] = self._coerce_color(color)
+        return Theme(values, **_metadata(self, kind="theme"))
+
+    def without_role(self, role: str) -> Theme:
+        normalized = _name(role)
+        values = dict(zip(self.roles, self._colors, strict=True))
+        if normalized not in values:
+            raise KeyError(role)
+        if len(values) == 1:
+            raise PaletteError("Theme must contain at least one role.")
+        del values[normalized]
+        return Theme(values, **_metadata(self, kind="theme"))
+
+    @classmethod
+    def from_color(cls, seed: ColorLike, *, scheme: str = "triadic", roles: Iterable[str] | None = None) -> Palette:
+        color = cls._coerce_color(seed)
+        generated = {
+            "complementary": lambda: (color, color.complementary()),
+            "analogous": lambda: tuple(color.analogous()),
+            "triadic": lambda: (color, *color.triadic()),
+            "split_complementary": lambda: (color, *color.split_complementary()),
+            "tetradic": lambda: (color, *color.tetradic()),
+        }
+        if scheme == "scale":
+            scale = color.scale()
+            default_roles = tuple(str(step) for step in scale)
+            colors = tuple(scale.values())
+            if roles is None:
+                return Palette(colors, names=default_roles, kind="scale")
+        elif scheme in generated:
+            colors = generated[scheme]()
+            default_roles = ("primary", "secondary", "accent", "accent2")[: len(colors)]
+        else:
+            raise PaletteError(f"Unknown theme scheme: {scheme}")
+        normalized_roles = tuple(_name(r) for r in (roles or default_roles))
+        if len(normalized_roles) != len(colors):
+            raise PaletteError("Theme roles must match generated color count.")
+        return cls(dict(zip(normalized_roles, colors, strict=True)))
+
+    def contrast_report(self):
+        return {
+            (left_role, right_role): left_color.wcag_report(right_color)
+            for i, (left_role, left_color) in enumerate(zip(self.roles, self._colors, strict=True))
+            for right_role, right_color in tuple(zip(self.roles, self._colors, strict=True))[i + 1 :]
+        }
+
+    def to_css_vars(self, prefix: str = "--cb") -> str:
+        return "\n".join(f"{prefix}-{role}: {color.hex};" for role, color in zip(self.roles, self._colors, strict=True))
