@@ -146,8 +146,14 @@ def _fetch_palette(url: str, timeout: float) -> dict[str, str]:
     return _normalize_palette(data)
 
 
-def _load_cached_palette(name: str, cache_dir: Path | None) -> dict[str, str]:
+def _load_cached_palette(
+    name: str,
+    cache_dir: Path | None,
+    fallback_name: str | None = None,
+) -> dict[str, str]:
     path = _cache_file(name, cache_dir)
+    if not path.exists() and fallback_name is not None:
+        path = _cache_file(fallback_name, cache_dir)
     return _normalize_palette(json.loads(path.read_text()))
 
 
@@ -290,7 +296,9 @@ def get_palette(
         if not resolved.allow_cache:
             raise ColorValueError("Palette cache access is disabled.")
         return Palette.from_mapping(
-            _load_cached_palette(cache_key, resolved.cache_dir),
+            _load_cached_palette(
+                cache_key, resolved.cache_dir, fallback_name=palette_name
+            ),
             kind="system",
             system=palette_name,
             version=palette_version,
@@ -318,7 +326,9 @@ def get_palette(
         cache_path = _cache_file(cache_key, resolved.cache_dir)
         if resolved.allow_cache and _is_cache_fresh(cache_path, resolved.cache_ttl):
             return Palette.from_mapping(
-                _load_cached_palette(cache_key, resolved.cache_dir),
+                _load_cached_palette(
+                    cache_key, resolved.cache_dir, fallback_name=palette_name
+                ),
                 kind="system",
                 system=palette_name,
                 version=palette_version,

@@ -101,7 +101,7 @@ def test_get_palette_from_remote_source(
         url=f"{palette_server}{path}",
         timeout=5.0,
     )
-    assert palette.family == family
+    assert palette.system == family
     assert palette.source == "api"
     assert expected_key in palette
     assert palette[expected_key].startswith("#")
@@ -150,6 +150,6 @@ def test_refresh_palette_fetches_remote(
         write_cache=False,
         timeout=5.0,
     )
-    assert palette.family == family
+    assert palette.system == family
     assert palette.source == "api"
     assert len(palette) > 0

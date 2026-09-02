@@ -1,6 +1,6 @@
 """Color palette data and optional stdlib-only palette loading helpers."""
 
-from colorbrew.data.api import refresh_palette
+from colorbrew.data.api import get_palette, refresh_palette
 from colorbrew.data.loader import (
     MATERIAL_COLORS,
     NAMED_COLORS,
@@ -8,7 +8,6 @@ from colorbrew.data.loader import (
 )
 from colorbrew.data.registry import (
     SystemRecord,
-    get_palette,
     get_system,
     list_palettes,
     list_systems,
