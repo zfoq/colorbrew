@@ -72,3 +72,36 @@ def test_registry_rejects_unknown_values() -> None:
         get_palette("tailwind@missing")
     with pytest.raises(ColorValueError):
         get_palette("colorbrewer:Missing-3")
+
+
+@pytest.mark.parametrize(
+    ("name", "expected_size"),
+    [
+        ("colorbrewer:Blues-3", 3),
+        ("colorbrewer:BuPu-5", 5),
+        ("colorbrewer:Set3-12", 12),
+    ],
+)
+def test_registry_colorbrewer_palettes_by_scheme_and_size(
+    name: str, expected_size: int
+) -> None:
+    palette = get_palette(name)
+    assert isinstance(palette, Palette)
+    assert len(palette) == expected_size
+    assert palette.system == "colorbrewer"
+    assert palette.source == "bundled"
+
+
+def test_registry_lists_colorbrewer_palettes() -> None:
+    names = list_palettes("colorbrewer")
+    assert "colorbrewer:blues-3" in names
+    assert "colorbrewer:bupu-5" in names
+    assert "colorbrewer:set3-12" in names
+
+
+def test_palette_from_system_colorbrewer() -> None:
+    palette = Palette.from_system("colorbrewer:Blues-3")
+    assert isinstance(palette, Palette)
+    assert len(palette) == 3
+    assert palette.system == "colorbrewer"
+    assert palette.source == "bundled"

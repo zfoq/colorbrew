@@ -1,15 +1,14 @@
-"""Opt-in integration tests for external palette sources.
+"""Integration tests for external palette sources.
 
 These tests spin up a local HTTP server that serves palette JSON so the
-network code path is exercised without relying on third-party uptime.
-They are skipped unless ``COLORBREW_RUN_INTEGRATION_TESTS=1`` is set, so
-normal local test runs stay offline.
+network code path is exercised without relying on third-party uptime. Remote
+fetching is enabled from code via :func:`settings_context` rather than an
+environment variable, and the disabled-by-default behavior is verified first.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
@@ -19,14 +18,8 @@ import pytest
 from colorbrew.data import get_palette, refresh_palette
 from colorbrew.data.material_colors import MATERIAL_COLORS
 from colorbrew.data.tailwind_colors import TAILWIND_COLORS
-
-pytestmark = pytest.mark.skipif(
-    os.environ.get("COLORBREW_RUN_INTEGRATION_TESTS") != "1",
-    reason=(
-        "Integration tests hit the network; "
-        "set COLORBREW_RUN_INTEGRATION_TESTS=1 to run them"
-    ),
-)
+from colorbrew.exceptions import ColorValueError
+from colorbrew.settings import settings_context
 
 
 class _PaletteHandler(BaseHTTPRequestHandler):
@@ -80,6 +73,17 @@ def palette_server():
         server.server_close()
 
 
+def test_remote_fetching_disabled_by_default(palette_server: str) -> None:
+    """``source="api"`` is rejected when remote fetching is disabled."""
+    with pytest.raises(ColorValueError, match="network access is disabled"):
+        get_palette(
+            "material",
+            source="api",
+            url=f"{palette_server}/material.json",
+            timeout=5.0,
+        )
+
+
 @pytest.mark.parametrize(
     ("family", "path", "expected_key"),
     [
@@ -94,13 +98,13 @@ def test_get_palette_from_remote_source(
     palette_server: str,
 ) -> None:
     """``get_palette`` can load a palette from an external JSON URL."""
-    palette = get_palette(
-        family,
-        source="api",
-        allow_network=True,
-        url=f"{palette_server}{path}",
-        timeout=5.0,
-    )
+    with settings_context(allow_network=True):
+        palette = get_palette(
+            family,
+            source="api",
+            url=f"{palette_server}{path}",
+            timeout=5.0,
+        )
     assert palette.system == family
     assert palette.source == "api"
     assert expected_key in palette

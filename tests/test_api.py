@@ -221,6 +221,43 @@ class TestPaletteCache:
         assert palette.source == "bundled"
         assert calls == []
 
+    def test_auto_source_prefers_bundled_with_default_settings(
+        self, tmp_path: Path
+    ):
+        """``source="auto"`` returns bundled data when network is off by default."""
+        assert get_settings().allow_network is False
+        palette = get_palette(
+            "tailwind",
+            source="auto",
+            cache_dir=tmp_path,
+        )
+        assert palette.source == "bundled"
+        assert palette.version == "v3"
+        assert palette["sky-500"].hex == "#0ea5e9"
+
+    def test_global_allow_network_false_blocks_api_source(self):
+        """Global ``allow_network=False`` blocks ``source="api"`` without per-call override."""
+        with settings_context(allow_network=False):
+            with pytest.raises(ColorValueError, match="network access is disabled"):
+                get_palette("tailwind", version="v4", source="api")
+
+    def test_global_allow_network_true_allows_api_source(self, monkeypatch):
+        """Global ``allow_network=True`` enables ``source="api"`` fetches."""
+
+        def fake_urlopen(_url: str, *, timeout: float):
+            return _FakeResponse({"brand-500": "#aabbcc"})
+
+        monkeypatch.setattr("colorbrew.data.api.urlopen", fake_urlopen)
+        with settings_context(allow_network=True):
+            palette = get_palette(
+                "tailwind",
+                version="v4",
+                source="api",
+                url="https://example.com/palette.json",
+            )
+        assert palette["brand-500"].hex == "#aabbcc"
+        assert palette.source == "api"
+
     def test_network_disabled_for_api_source_raises(self, monkeypatch, tmp_path: Path):
         """``source="api"`` with network disabled raises immediately."""
         with pytest.raises(ColorValueError, match="network access is disabled"):
@@ -267,6 +304,7 @@ class TestPaletteCache:
         _write_cached_palette("test", {"key": "#aabbcc"}, cache_dir)
         assert json.loads((cache_dir / "test.json").read_text()) == {"key": "#aabbcc"}
         assert not list(cache_dir.glob("*.tmp.*"))
+
 
 
 class TestRefreshPalette:
