@@ -11,10 +11,13 @@ from colorbrew.exceptions import PaletteError
 ColorBrewerColors: TypeAlias = dict[str, dict[str, list[str]]]
 
 
+_RESOURCE_PACKAGE = "colorbrew.data.resources"
+
+
 def _load_palette(name: str) -> dict[str, str]:
     """Load a bundled palette JSON resource by file stem."""
     return json.loads(
-        resources.files(__package__).joinpath(f"{name}_colors.json").read_text()
+        resources.files(_RESOURCE_PACKAGE).joinpath(f"{name}_colors.json").read_text()
     )
 
 
@@ -51,7 +54,7 @@ def load_colorbrewer_colors() -> ColorBrewerColors:
     if _COLORBREWER_COLORS is None:
         try:
             data = json.loads(
-                resources.files(__package__)
+                resources.files(_RESOURCE_PACKAGE)
                 .joinpath("colorbrewer_colors.json")
                 .read_text()
             )
