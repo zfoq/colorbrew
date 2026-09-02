@@ -26,12 +26,12 @@ from colorbrew.conversion.converters import (
     rgb_to_hsv,
 )
 from colorbrew.data import (
-    Palette,
     get_palette,
     list_palettes,
     refresh_palette,
 )
 from colorbrew.exceptions import ColorBrewError, ColorParseError, ColorValueError
+from colorbrew.palette import Palette
 from colorbrew.types import (
     BlendMode,
     ColorVisionDeficiency,

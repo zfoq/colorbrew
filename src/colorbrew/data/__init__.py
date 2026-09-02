@@ -10,7 +10,7 @@ from colorbrew.data.loader import (
     NAMED_COLORS,
     TAILWIND_COLORS,
 )
-from colorbrew.data.models import Palette
+from colorbrew.palette import Palette
 
 __all__ = [
     "get_palette",

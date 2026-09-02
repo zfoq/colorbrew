@@ -14,8 +14,8 @@ from colorbrew.data.loader import (
     NAMED_COLORS,
     TAILWIND_COLORS,
 )
-from colorbrew.data.models import Palette
 from colorbrew.exceptions import ColorValueError
+from colorbrew.palette import Palette
 
 _PACKAGE_VERSION = _package_version("colorbrew")
 
@@ -214,12 +214,12 @@ def get_palette(
     if source_name == "bundled":
         if key not in _BUNDLED_PALETTES:
             raise ColorValueError(f"Palette version is not available bundled: {key!r}")
-        return Palette(
-            family=palette_name,
-            version=_PACKAGE_VERSION,
+        return Palette.from_mapping(
+            _BUNDLED_PALETTES[key],
+            kind="system",
+            system=palette_name,
+            version=palette_version,
             source="bundled",
-            source_version=palette_version,
-            entries=dict(_BUNDLED_PALETTES[key]),
         )
 
     cache_key = _cache_key(palette_name, palette_version)
@@ -227,12 +227,12 @@ def get_palette(
     if source_name == "cache":
         if not allow_cache:
             raise ColorValueError("Palette cache access is disabled.")
-        return Palette(
-            family=palette_name,
-            version="upstream",
+        return Palette.from_mapping(
+            _load_cached_palette(cache_key, cache_dir),
+            kind="system",
+            system=palette_name,
+            version=palette_version,
             source="cache",
-            source_version=palette_version,
-            entries=_load_cached_palette(cache_key, cache_dir),
         )
 
     if source_name == "api":
@@ -244,12 +244,12 @@ def get_palette(
         entries = _fetch_palette(palette_url, timeout)
         if allow_cache:
             _write_cached_palette(cache_key, entries, cache_dir)
-        return Palette(
-            family=palette_name,
-            version="upstream",
+        return Palette.from_mapping(
+            entries,
+            kind="system",
+            system=palette_name,
+            version=palette_version,
             source="api",
-            source_version=palette_version,
-            entries=entries,
         )
 
     if source_name == "auto":
@@ -312,10 +312,10 @@ def refresh_palette(
     entries = _fetch_palette(url, timeout)
     if write_cache:
         _write_cached_palette(cache_key, entries, cache_dir)
-    return Palette(
-        family=palette_name,
-        version="upstream",
+    return Palette.from_mapping(
+        entries,
+        kind="system",
+        system=palette_name,
+        version=palette_version,
         source="api",
-        source_version=palette_version,
-        entries=entries,
     )

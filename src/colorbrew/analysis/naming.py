@@ -35,10 +35,11 @@ def _get_rgb_entries(
     palette: Mapping[str, str],
 ) -> list[tuple[str, str, int, int, int]]:
     """Return cached list of (name, hex, r, g, b) for a palette."""
-    key = id(palette)
+    mapping = palette.as_dict() if hasattr(palette, "as_dict") else palette
+    key = id(mapping)
     if key not in _rgb_cache:
         entries = []
-        for name, hex_val in palette.items():
+        for name, hex_val in mapping.items():
             r, g, b = hex_to_rgb(hex_val)
             entries.append((name, hex_val, r, g, b))
         _rgb_cache[key] = entries
