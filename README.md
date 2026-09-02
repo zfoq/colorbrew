@@ -20,6 +20,11 @@ brand.suggest_text_color()                     # Color('#000000')
 brand.scale()[500]                             # Color('#2986c7')
 ```
 
+## Docs
+
+- [Color, Palette, and Theme](docs/02-architecture/color-and-palette.md) covers the public API and runnable examples.
+- [Color systems](docs/03-specifications/color-systems.md) covers included CSS named colors, Tailwind, Material, ColorBrewer, bundled data, remote loading, and cache behavior.
+
 ## Why ColorBrew?
 
 - **Zero dependencies** — pure Python, nothing to install.
@@ -359,9 +364,6 @@ accessible.hex                   # darker shade that passes 4.5:1
 
 # Large text uses the lower WCAG threshold automatically
 accessible_large = bg.find_accessible_color(brand, level="aa", large=True)
-
-# Alias with a clearer intent-focused name
-accessible = bg.adjust_contrast(brand)
 
 # AAA level
 accessible = bg.find_accessible_color(brand, level="aaa")

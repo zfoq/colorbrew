@@ -2,6 +2,17 @@
 
 ColorBrew keeps named colors and system palettes in a runtime registry. Built-in systems are `css`, `tailwind`, `material`, and `colorbrewer`; custom systems can be added with `register_system()`.
 
+## Included systems and palettes
+
+| System | Included data | Default palette | Example |
+|---|---|---|---|
+| `css` | CSS named colors such as `rebeccapurple`, `cornflowerblue`, and `transparent` | `css@v1` | `Color.named("rebeccapurple")` |
+| `tailwind` | Bundled Tailwind CSS v3 color names such as `sky-500` | `tailwind@v3` | `Palette.from_system("tailwind")["sky-500"]` |
+| `material` | Bundled Material Design v2 names such as `blue-600` | `material@v2` | `Color.named("blue-600", system="material")` |
+| `colorbrewer` | Bundled ColorBrewer schemes by name and size, such as `blues-3` | none | `get_palette("colorbrewer:blues-3")` |
+
+CSS, Tailwind, and Material expose flat name-to-hex entries for `Color.named()`, `Color.names()`, `Color.nearest()`, and `Palette.to_system()`. ColorBrewer exposes named palettes for palette lookup; its schemes are not flat named colors.
+
 ## Names and prefixes
 
 `Color.named()` accepts either an explicit `system=` argument or a prefixed name:
@@ -13,7 +24,21 @@ ColorBrew keeps named colors and system palettes in a runtime registry. Built-in
 | `Palette.from_system("tailwind")` | default palette for a system |
 | `get_palette("colorbrewer:blues-3")` | named palette inside a system |
 
-System and palette names are normalized to lowercase. CSS named colors, Tailwind colors, and Material colors expose flat name-to-hex entries; ColorBrewer exposes palettes rather than flat entries.
+System and palette names are normalized to lowercase. Palette keys use `system:palette-name` for named palettes and `system@version` for versioned defaults.
+
+Registry inspection and custom systems use the data API:
+
+```python
+from colorbrew import Color, Palette, get_palette, list_palettes, list_systems, register_system
+
+list_systems()                       # ('css', 'tailwind', 'material', 'colorbrewer')
+list_palettes("colorbrewer")          # includes 'colorbrewer:blues-3'
+get_palette("colorbrewer:blues-3").hexes
+
+register_system("brand", entries={"primary": "#336699"})
+Color.named("brand:primary").hex      # '#336699'
+Palette(["#336699", "#cc9933"]).to_system("tailwind")
+```
 
 ## Bundled resources
 
@@ -33,6 +58,19 @@ Each `ColorBrewer` scheme maps palette sizes to ordered hex lists. The registry 
 
 Normal use is offline. `get_palette()` defaults to `source="bundled"`; remote requests require `source="api"` or `source="auto"` plus `allow_network=True`, either per call or through `configure(allow_network=True)`.
 
-Disk cache access is controlled by `allow_cache` and `cache_ttl`. `source="auto"` reads a fresh cache first, may fetch remote data when network access is allowed, and falls back to bundled data when available.
+```python
+from colorbrew import configure, get_palette, settings_context
+
+get_palette("tailwind")                         # bundled Tailwind v3, no network
+get_palette("material", source="bundled")       # bundled Material v2
+
+with settings_context(allow_network=True):
+    get_palette("tailwind", version="v4", source="api", allow_cache=True)
+
+configure(allow_network=False, allow_cache=True)
+get_palette("tailwind", source="auto")          # cache if fresh, otherwise bundled
+```
+
+Disk cache access is controlled by `allow_cache`, `cache_dir`, and `cache_ttl`. `source="cache"` reads only the cache, `source="api"` fetches only a remote URL, and `source="auto"` reads a fresh cache first, may fetch remote data when network access is allowed, and falls back to bundled data when available.
 
 Remote palettes may be JSON mappings or CSS custom-property payloads. CSS payloads accept hex values and OKLCH custom properties, which are converted to hex before a `Palette` is returned or cached.
