@@ -29,6 +29,13 @@ def _clamp_unit(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
+def _cbrt(value: float) -> float:
+    """Return the cube root of *value*, handling negative inputs correctly."""
+    if value >= 0.0:
+        return math.pow(value, 1.0 / 3.0)
+    return -math.pow(-value, 1.0 / 3.0)
+
+
 def rgb_to_oklab(r: int, g: int, b: int) -> tuple[float, float, float]:
     """Convert sRGB channels to OKLab ``(L, a, b)``."""
     for channel in (r, g, b):
@@ -39,7 +46,7 @@ def rgb_to_oklab(r: int, g: int, b: int) -> tuple[float, float, float]:
     m = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb
     s = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb
 
-    l_, m_, s_ = math.cbrt(lms_l), math.cbrt(m), math.cbrt(s)
+    l_, m_, s_ = _cbrt(lms_l), _cbrt(m), _cbrt(s)
     return (
         0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
         1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
