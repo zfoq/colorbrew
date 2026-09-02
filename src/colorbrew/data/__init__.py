@@ -16,17 +16,8 @@ from colorbrew.data.registry import (
 )
 
 
-def __getattr__(name: str):
-    if name == "Palette":
-        from colorbrew.palette import Palette
-
-        return Palette
-    raise AttributeError(name)
-
-
 __all__ = [
     "SystemRecord",
-    "Palette",
     "get_palette",
     "get_system",
     "list_palettes",
